@@ -208,7 +208,7 @@ function App() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [pdfBlob, numPages]);
+  }, [pdfBlob, numPages, currentPage, zoom]); // Added currentPage and zoom to dependencies
 
   const handleEditorChange = (value) => {
     setCode(value || '');
@@ -257,6 +257,10 @@ function App() {
     setCurrentPage(prev => Math.max(prev - 1, 1));
   };
 
+  const handleNextPage = () => {
+    setCurrentPage(prev => Math.min(prev + 1, numPages || 1));
+  };
+
   // Calculate PDF width based on container size
   const calculatePDFWidth = () => {
     const containerWidth = window.innerWidth * 0.45; // 45% of window width
@@ -281,6 +285,7 @@ function App() {
             <option value="simple">Simple Document</option>
             <option value="resume">Resume</option>
             <option value="invoice">Invoice</option>
+            <option value="multipage">Multi-page Example</option>
           </select>
           <button className="btn btn-primary" onClick={handleRunCode}>
             Run Code

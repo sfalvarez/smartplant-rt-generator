@@ -429,5 +429,127 @@ const Invoice = () => (
   </Document>
 );
 
-ReactPDF.render(<Invoice />);`
+ReactPDF.render(<Invoice />);`,
+
+  multipage: `// Multi-page Document Example
+const styles = StyleSheet.create({
+  page: {
+    flexDirection: 'column',
+    backgroundColor: '#FFFFFF',
+    padding: 30,
+  },
+  title: {
+    fontSize: 24,
+    textAlign: 'center',
+    marginBottom: 20,
+    color: '#2E86AB',
+  },
+  chapter: {
+    fontSize: 18,
+    marginBottom: 15,
+    marginTop: 20,
+    color: '#333',
+    fontWeight: 'bold',
+  },
+  text: {
+    fontSize: 12,
+    marginBottom: 10,
+    textAlign: 'justify',
+    lineHeight: 1.4,
+  },
+  pageNumber: {
+    position: 'absolute',
+    fontSize: 10,
+    bottom: 20,
+    left: 0,
+    right: 0,
+    textAlign: 'center',
+    color: '#666',
+  }
+});
+
+const MultiPageDoc = () => (
+  <Document>
+    <Page size="A4" style={styles.page}>
+      <Text style={styles.title}>Multi-Page Document</Text>
+      <Text style={styles.chapter}>Chapter 1: Introduction</Text>
+      <Text style={styles.text}>
+        This is a multi-page document example that demonstrates the pagination controls in the React-PDF playground.
+      </Text>
+      <Text style={styles.text}>
+        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
+      </Text>
+      <Text style={styles.text}>
+        Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo.
+      </Text>
+      <Text style={styles.text}>
+        Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt. Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit, sed quia non numquam eius modi tempora incidunt ut labore et dolore magnam aliquam quaerat voluptatem.
+      </Text>
+      <Text style={styles.pageNumber} render={({ pageNumber, totalPages }) => 
+        \`Page \${pageNumber} of \${totalPages}\`
+      } fixed />
+    </Page>
+    
+    <Page size="A4" style={styles.page}>
+      <Text style={styles.chapter}>Chapter 2: Advanced Features</Text>
+      <Text style={styles.text}>
+        This second page demonstrates how the pagination controls work when you have multiple pages in your PDF document.
+      </Text>
+      <Text style={styles.text}>
+        You can navigate between pages using the arrow buttons in the PDF viewer, or use the left/right arrow keys on your keyboard.
+      </Text>
+      <Text style={styles.text}>
+        The zoom functionality also works across all pages, allowing you to zoom in and out while maintaining your current page position.
+      </Text>
+      <Text style={styles.text}>
+        At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores et quas molestias excepturi sint occaecati cupiditate non provident, similique sunt in culpa qui officia deserunt mollitia animi, id est laborum et dolorum fuga.
+      </Text>
+      <Text style={styles.text}>
+        Et harum quidem rerum facilis est et expedita distinctio. Nam libero tempore, cum soluta nobis est eligendi optio cumque nihil impedit quo minus id quod maxime placeat facere possimus, omnis voluptas assumenda est, omnis dolor repellendus.
+      </Text>
+      <Text style={styles.pageNumber} render={({ pageNumber, totalPages }) => 
+        \`Page \${pageNumber} of \${totalPages}\`
+      } fixed />
+    </Page>
+    
+    <Page size="A4" style={styles.page}>
+      <Text style={styles.chapter}>Chapter 3: Conclusion</Text>
+      <Text style={styles.text}>
+        This final page concludes our multi-page document example. You now have a working pagination system!
+      </Text>
+      <Text style={styles.text}>
+        The React-PDF playground provides a complete development environment for creating and testing PDF documents with real-time preview capabilities.
+      </Text>
+      <Text style={styles.text}>
+        Features include:
+      </Text>
+      <Text style={styles.text}>
+        • Real-time PDF generation and preview
+      </Text>
+      <Text style={styles.text}>
+        • Zoom controls (40% to 300%)
+      </Text>
+      <Text style={styles.text}>
+        • Page navigation for multi-page documents
+      </Text>
+      <Text style={styles.text}>
+        • Keyboard shortcuts for improved workflow
+      </Text>
+      <Text style={styles.text}>
+        • Multiple pre-built templates
+      </Text>
+      <Text style={styles.text}>
+        • Download functionality
+      </Text>
+      <Text style={styles.text}>
+        • Monaco Editor with syntax highlighting
+      </Text>
+      <Text style={styles.pageNumber} render={({ pageNumber, totalPages }) => 
+        \`Page \${pageNumber} of \${totalPages}\`
+      } fixed />
+    </Page>
+  </Document>
+);
+
+ReactPDF.render(<MultiPageDoc />);`
 };
