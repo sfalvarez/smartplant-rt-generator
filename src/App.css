@@ -1,0 +1,550 @@
+/* App.css */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.app {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #1e1e1e;
+  color: #ffffff;
+}
+
+.app-header {
+  background-color: #2d2d30;
+  padding: 1rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #3e3e42;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.app-header h1 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0;
+}
+
+.header-buttons {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.template-selector {
+  padding: 0.5rem;
+  border: 1px solid #3e3e42;
+  border-radius: 4px;
+  background-color: #2d2d30;
+  color: #ffffff;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.template-selector:hover {
+  background-color: #3e3e42;
+}
+
+.template-selector:focus {
+  outline: none;
+  border-color: #007acc;
+}
+
+.btn {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.btn-primary {
+  background-color: #007acc;
+  color: white;
+}
+
+.btn-primary:hover {
+  background-color: #005a9e;
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  background-color: #3e3e42;
+  color: white;
+}
+
+.btn-secondary:hover {
+  background-color: #4a4a4f;
+  transform: translateY(-1px);
+}
+
+.main-content {
+  flex: 1;
+  display: flex;
+  height: calc(100vh - 80px);
+}
+
+.editor-panel {
+  width: 50%;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid #3e3e42;
+}
+
+.preview-panel {
+  width: 50%;
+  display: flex;
+  flex-direction: column;
+}
+
+.panel-header {
+  background-color: #2d2d30;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #3e3e42;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 50px;
+}
+
+.panel-header h2 {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #cccccc;
+  margin: 0;
+}
+
+.panel-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.language-tag {
+  background-color: #007acc;
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 3px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.error-message {
+  background-color: #f85149;
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.success-message {
+  background-color: #28a745;
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-download {
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  padding: 0.3rem 0.6rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: background-color 0.2s;
+}
+
+.btn-download:hover:not(:disabled) {
+  background-color: #45a049;
+}
+
+.btn-download:disabled {
+  background-color: #666;
+  cursor: not-allowed;
+}
+
+.pdf-controls {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  margin-left: 1rem;
+}
+
+.zoom-controls {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.btn-zoom {
+  background-color: #007acc;
+  color: white;
+  border: none;
+  padding: 0.2rem 0.5rem;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  min-width: 30px;
+  transition: background-color 0.2s;
+}
+
+.btn-zoom:hover:not(:disabled) {
+  background-color: #005a9e;
+}
+
+.btn-zoom:disabled {
+  background-color: #666;
+  cursor: not-allowed;
+}
+
+.zoom-level {
+  font-size: 0.8rem;
+  color: #ccc;
+  min-width: 40px;
+  text-align: center;
+}
+
+.page-controls {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.btn-page {
+  background-color: #007acc;
+  color: white;
+  border: none;
+  padding: 0.2rem 0.5rem;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 1rem;
+  min-width: 30px;
+  transition: background-color 0.2s;
+}
+
+.btn-page:hover:not(:disabled) {
+  background-color: #005a9e;
+}
+
+.btn-page:disabled {
+  background-color: #666;
+  cursor: not-allowed;
+}
+
+.page-info {
+  font-size: 0.8rem;
+  color: #ccc;
+  min-width: 50px;
+  text-align: center;
+}
+
+.pdf-viewer-container {
+  height: 100%;
+  overflow: auto;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 1rem;
+  background-color: #f0f0f0;
+}
+
+.pdf-page {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+  background-color: white;
+}
+
+.page-info-bottom {
+  text-align: center;
+  margin-top: 1rem;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.editor-container {
+  flex: 1;
+  background-color: #1e1e1e;
+  position: relative;
+}
+
+.preview-container {
+  flex: 1;
+  background-color: #f5f5f5;
+  position: relative;
+}
+
+.preview-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: #f5f5f5;
+  color: #666;
+  padding: 2rem;
+}
+
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  font-size: 1.125rem;
+  color: #666;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #e0e0e0;
+  border-top: 4px solid #007acc;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.error-display {
+  background-color: #fee;
+  border: 1px solid #f85149;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin: 1rem;
+  max-width: 500px;
+  text-align: center;
+}
+
+.error-display h3 {
+  color: #d73a49;
+  margin-bottom: 1rem;
+  font-size: 1.25rem;
+}
+
+.error-display pre {
+  background-color: #f85149;
+  color: white;
+  padding: 1rem;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  text-align: left;
+  margin: 1rem 0;
+}
+
+.error-display p {
+  color: #666;
+  margin-top: 0.5rem;
+}
+
+/* PDF Viewer specific styles */
+.pdf-viewer {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background-color: #f5f5f5;
+  overflow: auto;
+  padding: 1rem;
+}
+
+.pdf-page {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  margin-bottom: 1rem;
+  background-color: white;
+}
+
+.page-info {
+  background-color: #2d2d30;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+}
+
+/* React-PDF specific overrides */
+.react-pdf__Document {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.react-pdf__Page {
+  margin-bottom: 1rem;
+}
+
+.react-pdf__Page__canvas {
+  max-width: 100%;
+  height: auto !important;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .app-header {
+    padding: 0.75rem 1rem;
+  }
+  
+  .app-header h1 {
+    font-size: 1.25rem;
+  }
+  
+  .main-content {
+    flex-direction: column;
+    height: calc(100vh - 65px);
+  }
+  
+  .editor-panel,
+  .preview-panel {
+    width: 100%;
+  }
+  
+  .editor-panel {
+    height: 50%;
+    border-right: none;
+    border-bottom: 1px solid #3e3e42;
+  }
+  
+  .preview-panel {
+    height: 50%;
+  }
+  
+  .panel-header {
+    padding: 0.5rem 1rem;
+  }
+  
+  .panel-header h2 {
+    font-size: 0.875rem;
+  }
+  
+  .error-display {
+    margin: 0.5rem;
+    padding: 1rem;
+  }
+}
+
+/* Monaco Editor customization */
+.monaco-editor {
+  background-color: #1e1e1e !important;
+}
+
+.monaco-editor .margin {
+  background-color: #1e1e1e !important;
+}
+
+.monaco-editor .monaco-editor-background {
+  background-color: #1e1e1e !important;
+}
+
+.monaco-editor .current-line {
+  background-color: #2d2d30 !important;
+}
+
+.monaco-editor .line-numbers {
+  color: #858585 !important;
+}
+
+/* PDF Viewer adjustments */
+.react-pdf__Page__canvas {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  margin: 1rem auto;
+  display: block;
+  background-color: white;
+}
+
+.react-pdf__Document {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background-color: #f5f5f5;
+  min-height: 100%;
+  padding: 1rem;
+}
+
+.react-pdf__Page {
+  margin-bottom: 1rem;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #2d2d30;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #555;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #777;
+}
+
+/* Focus and accessibility */
+.btn:focus,
+.btn:focus-visible {
+  outline: 2px solid #007acc;
+  outline-offset: 2px;
+}
+
+/* Animation for panel transitions */
+.editor-panel,
+.preview-panel {
+  transition: width 0.3s ease;
+}
+
+/* Custom scrollbar for preview */
+.preview-container::-webkit-scrollbar {
+  width: 12px;
+}
+
+.preview-container::-webkit-scrollbar-track {
+  background: #e0e0e0;
+}
+
+.preview-container::-webkit-scrollbar-thumb {
+  background: #c0c0c0;
+  border-radius: 6px;
+}
+
+.preview-container::-webkit-scrollbar-thumb:hover {
+  background: #a0a0a0;
+}
