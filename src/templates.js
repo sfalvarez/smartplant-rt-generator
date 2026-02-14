@@ -9,7 +9,7 @@ Font.register({
 
 const styles = StyleSheet.create({
   body: {
-    paddingTop: 35,
+    paddingTop: 15,
     paddingBottom: 65,
     paddingHorizontal: 35,
   },
@@ -41,8 +41,7 @@ const styles = StyleSheet.create({
     height: 200,
   },
   cellImage: {
-    width: '60%',
-    height: 80,
+    width: '100%',
     marginVertical: 5,
     alignSelf: 'center'
   },
@@ -92,10 +91,26 @@ const styles = StyleSheet.create({
 
 const Quixote = () => (
   <Document>
-    <Page style={styles.body}>
-      <Text style={styles.header} fixed>
-        ~ Created with react-pdf ~
-      </Text>
+    <Page size="LETTER" style={styles.body}>
+      <View style={styles.table} fixed>
+        <View style={styles.tableRow}>
+          <View style={styles.tableCol}>
+            <Image
+              style={styles.cellImage}
+              src="/images/logo-ecopetrol.png" // Replace with your image source
+            />
+          </View>
+          <View style={styles.tableCol}>            
+            <View style={styles.tableRow}>
+              <Text style={styles.tableCell}>FORMATO RECOMENDACIÓN TÉCNICA</Text>
+            </View>
+            <View>
+              <Text style={styles.tableCell}>GERENCIA REFINERÍA BARRANCABERMEJA</Text>
+              <Text style={styles.tableCell}>GERENCIA TÉCNICA</Text>
+            </View>
+          </View>
+        </View>
+      </View>
       <Text style={styles.title}>Don Quijote de la Mancha</Text>
       <Text style={styles.author}>Miguel de Cervantes</Text>
       <Image
