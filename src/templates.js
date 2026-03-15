@@ -2,61 +2,47 @@
 
 export const templates = {
   quixote: `// Don Quixote Example - Table with Images
-Font.register({
-  family: 'Oswald',
-  src: 'https://fonts.gstatic.com/s/oswald/v13/Y_TKV6o8WovbUd3m_X9aAA.ttf'
-});
-
 const styles = StyleSheet.create({
-  body: {
-    paddingTop: 15,
-    paddingBottom: 65,
-    paddingHorizontal: 35,
-  },
-  title: {
-    fontSize: 24,
-    textAlign: 'center',
-    fontFamily: 'Oswald'
-  },
-  author: {
+    pageNumber: {
+    position: 'absolute',
     fontSize: 12,
+    top: '7mm',
+    left: 0,
+    right: 0,
     textAlign: 'center',
-    marginBottom: 40,
+    color: 'grey',
+  },
+  body: {
+    paddingTop: '13mm',
+    paddingBottom: '7mm',
+    paddingRight: '7mm',
+    paddingLeft: '13mm',
+  },
+  header: {
+    fontSize: 18,
+    textAlign: 'center',
+    fontFamily: 'OpenSans-SemiBold'
   },
   subtitle: {
     fontSize: 18,
-    margin: 12,
-    fontFamily: 'Oswald'
+    margin: 0,
+    fontFamily: 'OpenSans-Medium'
   },
   text: {
-    margin: 12,
+    margin: 0,
     fontSize: 14,
     textAlign: 'justify',
     fontFamily: 'Times-Roman'
   },
   image: {
-    marginVertical: 15,
-    marginHorizontal: 100,
-    width: 150,
-    height: 200,
-  },
-  cellImage: {
-    width: '100%',
-    marginVertical: 5,
-    alignSelf: 'center'
+    marginVertical: 0,
+    marginHorizontal: 0,
+    width: 100,
+    height: 100,
   },
   header: {
     fontSize: 12,
-    marginBottom: 20,
-    textAlign: 'center',
-    color: 'grey',
-  },
-  pageNumber: {
-    position: 'absolute',
-    fontSize: 12,
-    bottom: 30,
-    left: 0,
-    right: 0,
+    marginBottom: 0,
     textAlign: 'center',
     color: 'grey',
   },
@@ -66,24 +52,28 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRightWidth: 0,
     borderBottomWidth: 0,
-    marginVertical: 10
   },
   tableRow: {
     margin: "auto",
-    flexDirection: "row"
+    flexDirection: "row",
+    borderWidth: 1,
+    borderRightWidth: 0,
+    borderLeftWidth: 0,
+    borderTopWidth: 0
   },
   tableCol: {
-    width: "50%",
+    width: "70%",
     borderStyle: "solid",
     borderWidth: 1,
     borderLeftWidth: 0,
     borderTopWidth: 0,
+    borderBottomWidth: 0,
     flexDirection: 'column',
     justifyContent: 'center',
     alignItems: 'center'
   },
   tableCell: {
-    margin: 5,
+    margin: 0,
     fontSize: 10,
     textAlign: 'center'
   }
@@ -92,6 +82,33 @@ const styles = StyleSheet.create({
 const Quixote = () => (
   <Document>
     <Page size="LETTER" style={styles.body}>
+    <Text style={styles.pageNumber} render={({ pageNumber, totalPages }) => (
+        \`RT-GRB-00001 Revisión 0                                                Página \${pageNumber} / \${totalPages}\`
+      )} fixed />
+      <View style={styles.table} fixed>
+        <View style={{ flexDirection: "row", width: '100%', alignItems: 'center' }}>
+          <View style={{ width: '60%', flexDirection: "column" }}>
+            <View style={[styles.tableCell, { width: '100%' }]}>
+              <Text style={{ fontFamily: 'OpenSans-SemiBold', fontSize: 12, textAlign: 'center', width: '100%', marginLeft: 'auto', marginRight: 'auto' }}>FORMATO RECOMENDACIÓN TÉCNICA</Text>
+              <Text style={{ fontFamily: 'OpenSans-SemiBold', fontSize: 12, textAlign: 'center', width: '100%', marginLeft: 'auto', marginRight: 'auto' }}>GERENCIA REFINERÍA BARRANCABERMEJA</Text>
+              <Text style={{ fontFamily: 'OpenSans-SemiBold', fontSize: 12, textAlign: 'center', width: '100%', marginLeft: 'auto', marginRight: 'auto' }}>GERENCIA TÉCNICA</Text>
+            </View>
+          </View>
+          <View style={[styles.tableCell, { width: '40%', alignItems: 'center' }]}>
+            <Image
+              style={{ width: '3.4cm' }}
+              src="/images/logo-ecopetrol.png" // Replace with your image source
+            />
+          </View>
+        </View>
+      </View>
+      <Text style={styles.title}>Don Quijote de la Mancha</Text>
+      <Text style={styles.author}>Miguel de Cervantes</Text>
+      <Image
+        style={styles.image}
+        src="https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=150&h=200&fit=crop"
+      />
+
       <View style={styles.table} fixed>
         <View style={styles.tableRow}>
           <View style={styles.tableCol}>
@@ -156,10 +173,6 @@ const Quixote = () => (
       <Text style={styles.text}>
         En un lugar de la Mancha, de cuyo nombre no quiero acordarme, no ha mucho tiempo que vivía un hidalgo de los de lanza en astillero, adarga antigua, rocín flaco y galgo corredor.
       </Text>
-
-      <Text style={styles.pageNumber} render={({ pageNumber, totalPages }) => (
-        \`\${pageNumber} / \${totalPages}\`
-      )} fixed />
     </Page>
   </Document>
 );

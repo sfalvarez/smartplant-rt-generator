@@ -4,15 +4,17 @@ import { Document as PDFDocument, Page as PDFPage, Text, View, StyleSheet, pdf, 
 import { Document, Page, pdfjs } from 'react-pdf';
 import * as Babel from '@babel/standalone';
 import { templates } from './templates';
+import openSansMedium from './fonts/OpenSans/OpenSans-Medium.ttf';
+import openSansSemiBold from './fonts/OpenSans/OpenSans-SemiBold.ttf';
 import './App.css';
 
 // Set up PDF.js worker - use the correct .mjs extension
 const setupPDFWorker = () => {
   console.log('PDF.js version:', pdfjs.version);
-  
+
   // The newer versions of pdfjs-dist use .mjs extension
   const workerUrl = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
-  
+
   pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
   console.log('Using worker source:', workerUrl);
 };
@@ -21,25 +23,53 @@ setupPDFWorker();
 
 // Register fonts
 Font.register({
-  family: 'Oswald',
-  src: 'https://fonts.gstatic.com/s/oswald/v13/Y_TKV6o8WovbUd3m_X9aAA.ttf'
+  family: 'OpenSans-Medium',
+  src: openSansMedium
 });
 
+Font.register({
+  family: 'OpenSans-SemiBold',
+  src: openSansSemiBold
+});
+
+const SAVED_TEMPLATES_STORAGE_KEY = 'rt-playground-template-overrides-v1';
+
+const loadSavedTemplates = () => {
+  try {
+    const saved = localStorage.getItem(SAVED_TEMPLATES_STORAGE_KEY);
+    return saved ? JSON.parse(saved) : {};
+  } catch (err) {
+    console.error('Failed to load saved templates:', err);
+    return {};
+  }
+};
+
 function App() {
-  const [code, setCode] = useState(templates.quixote);
+  const [savedTemplates, setSavedTemplates] = useState(() => loadSavedTemplates());
+  const [selectedTemplate, setSelectedTemplate] = useState('quixote');
+  const [code, setCode] = useState(() => savedTemplates.quixote || templates.quixote);
   const [documentComponent, setDocumentComponent] = useState(null);
   const [pdfBlob, setPdfBlob] = useState(null);
   const [numPages, setNumPages] = useState(null);
   const [error, setError] = useState(null);
-  const [selectedTemplate, setSelectedTemplate] = useState('quixote');
   const [zoom, setZoom] = useState(1.0);
   const [currentPage, setCurrentPage] = useState(1);
+  const [saveMessage, setSaveMessage] = useState('');
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(SAVED_TEMPLATES_STORAGE_KEY, JSON.stringify(savedTemplates));
+    } catch (err) {
+      console.error('Failed to save templates:', err);
+      setError('Failed to save template changes locally.');
+    }
+  }, [savedTemplates]);
 
   // Function to generate PDF blob from component
   const generatePDF = async (component) => {
     try {
       if (!component) return;
-      
+
       console.log('Generating PDF for component:', component);
       const blob = await pdf(React.createElement(component)).toBlob();
       console.log('PDF blob generated successfully:', blob);
@@ -55,16 +85,16 @@ function App() {
     try {
       // Clear previous errors
       setError(null);
-      
+
       // Transform JSX to regular JavaScript using Babel
       const transformedCode = Babel.transform(codeString, {
         presets: ['react'],
         plugins: []
       }).code;
-      
+
       // Variable to capture the rendered component
       let capturedComponent = null;
-      
+
       // Create a mock ReactPDF object
       const ReactPDF = {
         render: (component) => {
@@ -72,21 +102,21 @@ function App() {
           return component;
         }
       };
-      
+
       // Create a function that has access to React-PDF components
       const func = new Function(
         'React',
         'Document',
         'Page',
         'Text',
-        'View', 
+        'View',
         'StyleSheet',
         'Font',
         'Image',
         'ReactPDF',
         transformedCode
       );
-      
+
       // Execute the function with React-PDF components
       func(
         React,
@@ -99,13 +129,13 @@ function App() {
         Image,
         ReactPDF
       );
-      
+
       // If ReactPDF.render was called, use the captured component
       if (capturedComponent) {
         setDocumentComponent(() => () => capturedComponent);
         return;
       }
-      
+
       // If no ReactPDF.render was called, try to find component by name
       // Re-execute to get access to defined variables
       const componentFunc = new Function(
@@ -113,7 +143,7 @@ function App() {
         'Document',
         'Page',
         'Text',
-        'View', 
+        'View',
         'StyleSheet',
         'Font',
         'Image',
@@ -129,7 +159,7 @@ function App() {
         throw new Error('No valid component found. Please define MyDocument, Quixote, or use ReactPDF.render()');
         `
       );
-      
+
       const DocumentComponent = componentFunc(
         React,
         PDFDocument, // Use PDFDocument instead of Document
@@ -141,7 +171,7 @@ function App() {
         Image,
         ReactPDF
       );
-      
+
       setDocumentComponent(() => DocumentComponent);
     } catch (err) {
       setError(err.message);
@@ -171,7 +201,7 @@ function App() {
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.target.closest('.editor-container')) return; // Don't interfere with editor
-      
+
       if (e.ctrlKey || e.metaKey) {
         switch (e.key) {
           case '=':
@@ -218,14 +248,25 @@ function App() {
     evaluateCode(code);
   };
 
+  const handleSaveCode = () => {
+    setSavedTemplates(prev => ({
+      ...prev,
+      [selectedTemplate]: code,
+    }));
+    setSaveMessage(`Saved "${selectedTemplate}"`);
+    setTimeout(() => setSaveMessage(''), 2000);
+  };
+
   const handleClearCode = () => {
     setCode(templates.quixote);
     setSelectedTemplate('quixote');
   };
 
   const handleTemplateChange = (templateName) => {
-    setCode(templates[templateName]);
+    const savedCode = savedTemplates[templateName];
+    setCode(savedCode || templates[templateName]);
     setSelectedTemplate(templateName);
+    setSaveMessage('');
   };
 
   const handleDownload = async () => {
@@ -276,8 +317,8 @@ function App() {
       <header className="app-header">
         <h1>React-PDF Playground</h1>
         <div className="header-buttons">
-          <select 
-            value={selectedTemplate} 
+          <select
+            value={selectedTemplate}
             onChange={(e) => handleTemplateChange(e.target.value)}
             className="template-selector"
           >
@@ -290,12 +331,16 @@ function App() {
           <button className="btn btn-primary" onClick={handleRunCode}>
             Run Code
           </button>
+          <button className="btn btn-primary" onClick={handleSaveCode}>
+            Save
+          </button>
           <button className="btn btn-secondary" onClick={handleClearCode}>
             Reset
           </button>
+          {saveMessage && <span className="language-tag">{saveMessage}</span>}
         </div>
       </header>
-      
+
       <div className="main-content">
         <div className="editor-panel">
           <div className="panel-header">
@@ -334,8 +379,8 @@ function App() {
               {!error && documentComponent && (
                 <div className="success-message">
                   <span>✓ PDF Generated</span>
-                  <button 
-                    className="btn btn-download" 
+                  <button
+                    className="btn btn-download"
                     onClick={handleDownload}
                     disabled={!pdfBlob}
                   >
@@ -402,7 +447,7 @@ function App() {
                     </div>
                   }
                 >
-                  <Page 
+                  <Page
                     pageNumber={currentPage}
                     width={calculatePDFWidth()}
                     renderTextLayer={false}
