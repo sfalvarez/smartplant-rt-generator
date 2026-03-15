@@ -1,22 +1,22 @@
 // Template examples for the React-PDF playground
 
 export const templates = {
-  quixote: `// Don Quixote Example - Table with changes
+  quixote: `// Don Quixote Example - Table with Images
 const styles = StyleSheet.create({
     pageNumber: {
     position: 'absolute',
     fontSize: 12,
-    top: '7mm',
+    top: '9mm',
     left: 0,
     right: 0,
     textAlign: 'center',
     color: 'grey',
   },
   body: {
-    paddingTop: '13mm',
-    paddingBottom: '7mm',
-    paddingRight: '7mm',
-    paddingLeft: '13mm',
+    paddingTop: '15mm',
+    paddingBottom: '10mm',
+    paddingRight: '10mm',
+    paddingLeft: '10mm',
   },
   header: {
     fontSize: 18,
@@ -62,7 +62,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 0
   },
   tableCol: {
-    width: "70%",
+    width: "50%",
     borderStyle: "solid",
     borderWidth: 1,
     borderLeftWidth: 0,
@@ -73,106 +73,129 @@ const styles = StyleSheet.create({
     alignItems: 'center'
   },
   tableCell: {
+    width: "auto",
+    borderStyle: "solid",
+    borderWidth: 1,
+    borderLeftWidth: 0,
+    borderTopWidth: 0,
     margin: 0,
-    fontSize: 10,
-    textAlign: 'center'
+    paddingTop: 5,
+    paddingBottom: 10
   }
 });
 
 const Quixote = () => (
   <Document>
     <Page size="LETTER" style={styles.body}>
-    <Text style={styles.pageNumber} render={({ pageNumber, totalPages }) => (
-        \`RT-GRB-00001 Revisión 0                                                Página \${pageNumber} / \${totalPages}\`
-      )} fixed />
+      <Text style={styles.pageNumber} render={({ pageNumber, totalPages }) => (
+          \`RT-GRB-00002 Revisión 0                                                                                                         Página \${pageNumber} / \${totalPages}\`)} fixed />
       <View style={styles.table} fixed>
-        <View style={{ flexDirection: "row", width: '100%', alignItems: 'center' }}>
-          <View style={{ width: '60%', flexDirection: "column" }}>
-            <View style={[styles.tableCell, { width: '100%' }]}>
-              <Text style={{ fontFamily: 'OpenSans-SemiBold', fontSize: 12, textAlign: 'center', width: '100%', marginLeft: 'auto', marginRight: 'auto' }}>FORMATO RECOMENDACIÓN TÉCNICA</Text>
-              <Text style={{ fontFamily: 'OpenSans-SemiBold', fontSize: 12, textAlign: 'center', width: '100%', marginLeft: 'auto', marginRight: 'auto' }}>GERENCIA REFINERÍA BARRANCABERMEJA</Text>
-              <Text style={{ fontFamily: 'OpenSans-SemiBold', fontSize: 12, textAlign: 'center', width: '100%', marginLeft: 'auto', marginRight: 'auto' }}>GERENCIA TÉCNICA</Text>
-            </View>
-          </View>
-          <View style={[styles.tableCell, { width: '40%', alignItems: 'center' }]}>
+        <View style={{flexDirection: "row"}}>
+          <View style={{...styles.tableCell, ...{flex: 1, justifyContent: 'center', alignItems: 'center' }}}>
             <Image
-              style={{ width: '3.4cm' }}
-              src="/images/logo-ecopetrol.png" // Replace with your image source
+            style={{ width: '5cm'}}
+            src="/images/logo-ecopetrol.png" // Replace with your image source
             />
           </View>
-        </View>
-      </View>
-      <Text style={styles.title}>Don Quijote de la Mancha</Text>
-      <Text style={styles.author}>Miguel de Cervantes</Text>
-      <Image
-        style={styles.image}
-        src="https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=150&h=200&fit=crop"
-      />
-
-      <View style={styles.table} fixed>
-        <View style={styles.tableRow}>
-          <View style={styles.tableCol}>
-            <Image
-              style={styles.cellImage}
-              src="/images/logo-ecopetrol.png" // Replace with your image source
-            />
-          </View>
-          <View style={styles.tableCol}>            
-            <View style={styles.tableRow}>
-              <Text style={styles.tableCell}>FORMATO RECOMENDACIÓN TÉCNICA</Text>
-            </View>
-            <View>
-              <Text style={styles.tableCell}>GERENCIA REFINERÍA BARRANCABERMEJA</Text>
-              <Text style={styles.tableCell}>GERENCIA TÉCNICA</Text>
+          <View style={{width: "70%", flexDirection: "column"}}>
+            <Text style={{...styles.tableCell, ...{ fontFamily: 'OpenSans-SemiBold', fontSize: 12, textAlign: 'center'}}}>FORMATO RECOMENDACIÓN TÉCNICA</Text>
+            <View style={{...styles.tableCell}}>
+              <Text style={{ fontFamily: 'OpenSans-SemiBold', fontSize: 12, textAlign: 'center' }}>GERENCIA REFINERÍA BARRANCABERMEJA</Text>
+              <Text style={{ fontFamily: 'OpenSans-SemiBold', fontSize: 12, textAlign: 'center', marginTop: 5 }}>GERENCIA TÉCNICA</Text>
             </View>
           </View>
         </View>
       </View>
-      <Text style={styles.title}>Don Quijote de la Mancha</Text>
-      <Text style={styles.author}>Miguel de Cervantes</Text>
-      <Image
-        style={styles.image}
-        src="https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=150&h=200&fit=crop"
-      />
 
-      <View style={styles.table}>
-        <View style={styles.tableRow}>
-          <View style={styles.tableCol}>
-            <Text style={styles.tableCell}>Some text before the image.</Text>
+      <View style={{...styles.table, ...{marginTop: 10}}} fixed>
+        <View style={{flexDirection: "row"}}>
+          <View style={{...styles.tableCell, ...{flex: 1, justifyContent: 'center', alignItems: 'center' }}}>
             <Image
-              style={styles.cellImage}
-              src="https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=100&h=80&fit=crop"
+            style={{ width: '5cm'}}
+            src="/images/logo-ecopetrol.png" // Replace with your image source
             />
-            <Text style={styles.tableCell}>Some text after the image.</Text>
           </View>
-          <View style={styles.tableCol}>
-            <Text style={styles.tableCell}>Row 1, Col 2</Text>
-          </View>
-        </View>
-        <View style={styles.tableRow}>
-          <View style={styles.tableCol}>
-            <Text style={styles.tableCell}>Row 2, Col 1</Text>
-          </View>
-          <View style={styles.tableCol}>
-            <Text style={styles.tableCell}>Row 2, Col 2</Text>
-          </View>
-        </View>
-        <View style={styles.tableRow}>
-          <View style={styles.tableCol}>
-            <Text style={styles.tableCell}>Row 3, Col 1</Text>
-          </View>
-          <View style={styles.tableCol}>
-            <Text style={styles.tableCell}>Row 3, Col 2</Text>
+          <View style={{width: "70%", flexDirection: "column"}}>
+            <Text style={{...styles.tableCell, ...{ fontFamily: 'OpenSans-SemiBold', fontSize: 12, textAlign: 'center'}}}>FORMATO RECOMENDACIÓN TÉCNICA</Text>
+            <View style={{...styles.tableCell}}>
+              <Text style={{ fontFamily: 'OpenSans-SemiBold', fontSize: 12, textAlign: 'center' }}>GERENCIA REFINERÍA BARRANCABERMEJA</Text>
+              <Text style={{ fontFamily: 'OpenSans-SemiBold', fontSize: 12, textAlign: 'center', marginTop: 5 }}>GERENCIA TÉCNICA</Text>
+            </View>
           </View>
         </View>
       </View>
 
-      <Text style={styles.subtitle}>
-        Capítulo I: Que trata de la condición y ejercicio del famoso hidalgo D. Quijote de la Mancha
-      </Text>
-      <Text style={styles.text}>
-        En un lugar de la Mancha, de cuyo nombre no quiero acordarme, no ha mucho tiempo que vivía un hidalgo de los de lanza en astillero, adarga antigua, rocín flaco y galgo corredor.
-      </Text>
+        <Text style={styles.title}>Don Quijote de la Mancha</Text>
+        <Text style={styles.author}>Miguel de Cervantes</Text>
+        <Image
+          style={styles.image}
+          src="https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=150&h=200&fit=crop"
+        />
+
+        <View style={styles.table} fixed>
+          <View style={styles.tableRow}>
+            <View style={styles.tableCol}>
+              <Image
+                style={styles.cellImage}
+                src="/images/logo-ecopetrol.png" // Replace with your image source
+              />
+            </View>
+            <View style={styles.tableCol}>            
+              <View style={styles.tableRow}>
+                <Text style={styles.tableCell}>FORMATO RECOMENDACIÓN TÉCNICA</Text>
+              </View>
+              <View>
+                <Text style={styles.tableCell}>GERENCIA REFINERÍA BARRANCABERMEJA</Text>
+                <Text style={styles.tableCell}>GERENCIA TÉCNICA</Text>
+              </View>
+            </View>
+          </View>
+        </View>
+        <Text style={styles.title}>Don Quijote de la Mancha</Text>
+        <Text style={styles.author}>Miguel de Cervantes</Text>
+        <Image
+          style={styles.image}
+          src="https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=150&h=200&fit=crop"
+        />
+
+        <View style={styles.table}>
+          <View style={styles.tableRow}>
+            <View style={styles.tableCol}>
+              <Text style={styles.tableCell}>Some text before the image.</Text>
+              <Image
+                style={styles.cellImage}
+                src="https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=100&h=80&fit=crop"
+              />
+              <Text style={styles.tableCell}>Some text after the image.</Text>
+            </View>
+            <View style={styles.tableCol}>
+              <Text style={styles.tableCell}>Row 1, Col 2</Text>
+            </View>
+          </View>
+          <View style={styles.tableRow}>
+            <View style={styles.tableCol}>
+              <Text style={styles.tableCell}>Row 2, Col 1</Text>
+            </View>
+            <View style={styles.tableCol}>
+              <Text style={styles.tableCell}>Row 2, Col 2</Text>
+            </View>
+          </View>
+          <View style={styles.tableRow}>
+            <View style={styles.tableCol}>
+              <Text style={styles.tableCell}>Row 3, Col 1</Text>
+            </View>
+            <View style={styles.tableCol}>
+              <Text style={styles.tableCell}>Row 3, Col 2</Text>
+            </View>
+          </View>
+        </View>
+
+        <Text style={styles.subtitle}>
+          Durante la inspección se encuentra 
+        </Text>
+        <Text style={styles.text}>
+          En un lugar de la Mancha, de cuyo nombre no quiero acordarme, no ha mucho tiempo que vivía un hidalgo de los de lanza en astillero, adarga antigua, rocín flaco y galgo corredor.
+        </Text>
     </Page>
   </Document>
 );
