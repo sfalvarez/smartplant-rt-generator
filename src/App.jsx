@@ -260,7 +260,7 @@ function App() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ code }),
+        body: JSON.stringify({ code, templateName: selectedTemplate }),
       });
 
       if (!response.ok) {
@@ -271,12 +271,12 @@ function App() {
         } catch {
           details = '';
         }
-        throw new Error(`Failed to write src/template.js.${details}`.trim());
+        throw new Error(`Failed to write src/templates.js.${details}`.trim());
       }
 
-      setSaveMessage(`Saved "${selectedTemplate}" + src/template.js`);
+      setSaveMessage(`Saved "${selectedTemplate}" + src/templates.js`);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to save code to src/template.js.';
+      const message = err instanceof Error ? err.message : 'Failed to save code to src/templates.js.';
       setError(message);
       setSaveMessage('Save failed');
     }

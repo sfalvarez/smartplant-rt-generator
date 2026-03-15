@@ -1,7 +1,7 @@
 // Template examples for the React-PDF playground
 
 export const templates = {
-  quixote: `// Don Quixote Example - Table with Images
+  quixote: `// Don Quixote Example - Table with changes
 const styles = StyleSheet.create({
     pageNumber: {
     position: 'absolute',
