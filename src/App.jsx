@@ -248,13 +248,40 @@ function App() {
     evaluateCode(code);
   };
 
-  const handleSaveCode = () => {
+  const handleSaveCode = async () => {
     setSavedTemplates(prev => ({
       ...prev,
       [selectedTemplate]: code,
     }));
-    setSaveMessage(`Saved "${selectedTemplate}"`);
-    setTimeout(() => setSaveMessage(''), 2000);
+
+    try {
+      const response = await fetch('/api/save-template-file', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ code }),
+      });
+
+      if (!response.ok) {
+        let details = '';
+        try {
+          const payload = await response.json();
+          details = payload?.error ? ` ${payload.error}` : '';
+        } catch {
+          details = '';
+        }
+        throw new Error(`Failed to write src/template.js.${details}`.trim());
+      }
+
+      setSaveMessage(`Saved "${selectedTemplate}" + src/template.js`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to save code to src/template.js.';
+      setError(message);
+      setSaveMessage('Save failed');
+    }
+
+    setTimeout(() => setSaveMessage(''), 2500);
   };
 
   const handleClearCode = () => {
