@@ -32,22 +32,9 @@ Font.register({
   src: openSansSemiBold
 });
 
-const SAVED_TEMPLATES_STORAGE_KEY = 'rt-playground-template-overrides-v1';
-
-const loadSavedTemplates = () => {
-  try {
-    const saved = localStorage.getItem(SAVED_TEMPLATES_STORAGE_KEY);
-    return saved ? JSON.parse(saved) : {};
-  } catch (err) {
-    console.error('Failed to load saved templates:', err);
-    return {};
-  }
-};
-
 function App() {
-  const [savedTemplates, setSavedTemplates] = useState(() => loadSavedTemplates());
   const [selectedTemplate, setSelectedTemplate] = useState('quixote');
-  const [code, setCode] = useState(() => savedTemplates.quixote || templates.quixote);
+  const [code, setCode] = useState(() => templates.quixote);
   const [documentComponent, setDocumentComponent] = useState(null);
   const [pdfBlob, setPdfBlob] = useState(null);
   const [numPages, setNumPages] = useState(null);
@@ -55,15 +42,6 @@ function App() {
   const [zoom, setZoom] = useState(1.0);
   const [currentPage, setCurrentPage] = useState(1);
   const [saveMessage, setSaveMessage] = useState('');
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(SAVED_TEMPLATES_STORAGE_KEY, JSON.stringify(savedTemplates));
-    } catch (err) {
-      console.error('Failed to save templates:', err);
-      setError('Failed to save template changes locally.');
-    }
-  }, [savedTemplates]);
 
   // Function to generate PDF blob from component
   const generatePDF = async (component) => {
@@ -249,11 +227,6 @@ function App() {
   };
 
   const handleSaveCode = async () => {
-    setSavedTemplates(prev => ({
-      ...prev,
-      [selectedTemplate]: code,
-    }));
-
     try {
       const response = await fetch('/api/save-template-file', {
         method: 'POST',
@@ -290,8 +263,7 @@ function App() {
   };
 
   const handleTemplateChange = (templateName) => {
-    const savedCode = savedTemplates[templateName];
-    setCode(savedCode || templates[templateName]);
+    setCode(templates[templateName]);
     setSelectedTemplate(templateName);
     setSaveMessage('');
   };
