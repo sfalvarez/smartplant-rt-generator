@@ -20,13 +20,31 @@ const escapeTemplateLiteralContent = (value) => (
 const replaceTemplateSource = (source, templateName, code) => {
   const escapedTemplateName = escapeRegExp(templateName)
   const entryRegex = new RegExp(`(${escapedTemplateName}\\s*:\\s*\`)([\\s\\S]*?)(?<!\\\\)(\`)(?=\\s*,|\\s*})`)
+  const escapedCode = escapeTemplateLiteralContent(code)
 
-  if (!entryRegex.test(source)) {
+  if (entryRegex.test(source)) {
+    return source.replace(entryRegex, (_match, prefix, _existingCode, suffix) => (
+      `${prefix}${escapedCode}${suffix}`
+    ))
+  }
+
+  // Support aliases like: quixoteGui: quixoteTemplate
+  const aliasEntryRegex = new RegExp(`${escapedTemplateName}\\s*:\\s*([A-Za-z_$][\\w$]*)\\s*(?=,|})`)
+  const aliasMatch = source.match(aliasEntryRegex)
+
+  if (!aliasMatch) {
     throw new Error(`Template "${templateName}" was not found in src/templates.js.`)
   }
 
-  const escapedCode = escapeTemplateLiteralContent(code)
-  return source.replace(entryRegex, (_match, prefix, _existingCode, suffix) => (
+  const aliasName = aliasMatch[1]
+  const escapedAliasName = escapeRegExp(aliasName)
+  const aliasLiteralRegex = new RegExp(`((?:const|let|var)\\s+${escapedAliasName}\\s*=\\s*\`)([\\s\\S]*?)(?<!\\\\)(\`\\s*;)`)
+
+  if (!aliasLiteralRegex.test(source)) {
+    throw new Error(`Template "${templateName}" points to "${aliasName}", but no template literal assignment for that variable was found.`)
+  }
+
+  return source.replace(aliasLiteralRegex, (_match, prefix, _existingCode, suffix) => (
     `${prefix}${escapedCode}${suffix}`
   ))
 }

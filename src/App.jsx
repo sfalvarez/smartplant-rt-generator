@@ -12,6 +12,124 @@ import openSansBold from './fonts/OpenSans/OpenSans-Bold.ttf';
 import openSansExtraBold from './fonts/OpenSans/OpenSans-ExtraBold.ttf';
 import './App.css';
 
+const GUI_TEMPLATE_NAME = 'quixoteGui';
+const REGULAR_TEXT_PATTERN = /<Text style=\{\{[^}]*fontFamily:\s*'OpenSans-Regular'[^}]*\}\}[^>]*>\s*\{`([\s\S]*?)`\}\s*<\/Text>/g;
+const SEMIBOLD_TEXT_PATTERN = /<Text style=\{\{[^}]*fontFamily:\s*'OpenSans-SemiBold'[^}]*\}\}[^>]*>\s*([\s\S]*?)\s*<\/Text>/g;
+const BOLD_TEXT_PATTERN = /<Text style=\{\{[^}]*fontFamily:\s*'OpenSans-Bold'[^}]*\}\}[^>]*>\s*([\s\S]*?)\s*<\/Text>/g;
+const ARROW_TOKEN = '__GUI_ARROW_TOKEN__';
+
+const cleanLabelText = (value) => (
+  value
+    .replace(/\{\s*'\\s*'\s*\}/g, ' ')
+    .replace(/\{\s*"\\s*"\s*\}/g, ' ')
+    .replace(/^\s*\[word\]\}>\s*/i, '')
+    .replace(/^\s*\[[^\]]+\]\}>\s*/i, '')
+    .replace(/\s*\[[^\]]+\]\}>\s*/g, ' ')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/:$/, '')
+);
+
+const normalizeContextForLabelMatching = (value) => value.replace(/=>/g, ARROW_TOKEN);
+
+const getLastLabelFromContext = (context, pattern) => {
+  let label = '';
+  let match = pattern.exec(context);
+
+  while (match) {
+    const candidate = cleanLabelText(match[1] || '');
+    if (candidate) {
+      label = candidate;
+    }
+    match = pattern.exec(context);
+  }
+
+  return label;
+};
+
+const getFirstLabelFromContext = (context, pattern) => {
+  const match = pattern.exec(context);
+  if (!match) {
+    return '';
+  }
+
+  return cleanLabelText(match[1] || '');
+};
+
+const extractGuiFieldsFromCode = (codeString) => {
+  REGULAR_TEXT_PATTERN.lastIndex = 0;
+  const fields = [];
+  let match = REGULAR_TEXT_PATTERN.exec(codeString);
+
+  while (match) {
+    const value = match[1] || '';
+    const contextBefore = normalizeContextForLabelMatching(
+      codeString.slice(Math.max(0, match.index - 1800), match.index)
+    );
+    const contextAfter = normalizeContextForLabelMatching(
+      codeString.slice(match.index, Math.min(codeString.length, match.index + 700))
+    );
+    const semiBoldPattern = new RegExp(SEMIBOLD_TEXT_PATTERN.source, 'g');
+    const boldPattern = new RegExp(BOLD_TEXT_PATTERN.source, 'g');
+    const semiBoldPatternForward = new RegExp(SEMIBOLD_TEXT_PATTERN.source, 'g');
+    const boldPatternForward = new RegExp(BOLD_TEXT_PATTERN.source, 'g');
+
+    const label = (
+      getLastLabelFromContext(contextBefore, semiBoldPattern) ||
+      getLastLabelFromContext(contextBefore, boldPattern) ||
+      getFirstLabelFromContext(contextAfter, semiBoldPatternForward) ||
+      getFirstLabelFromContext(contextAfter, boldPatternForward) ||
+      `Field ${fields.length + 1}`
+    );
+
+    fields.push({
+      id: `gui-field-${fields.length}`,
+      label,
+      value,
+      multiline: value.includes('\n') || value.length > 120,
+    });
+
+    match = REGULAR_TEXT_PATTERN.exec(codeString);
+  }
+
+  const labelCounts = {};
+  return fields.map((field) => {
+    labelCounts[field.label] = (labelCounts[field.label] || 0) + 1;
+    if (labelCounts[field.label] === 1) {
+      return field;
+    }
+
+    return {
+      ...field,
+      label: `${field.label} ${labelCounts[field.label]}`,
+    };
+  });
+};
+
+const applyGuiFieldValuesToCode = (codeString, fields) => {
+  REGULAR_TEXT_PATTERN.lastIndex = 0;
+  let index = 0;
+
+  return codeString.replace(REGULAR_TEXT_PATTERN, (fullMatch, existingValue) => {
+    const replacementValue = fields[index]?.value ?? existingValue;
+    index += 1;
+
+    const escapedValue = replacementValue
+      .replace(/\\/g, '\\\\')
+      .replace(/`/g, '\\`')
+      .replace(/\$\{/g, '\\${');
+
+    return fullMatch.replace(`{\`${existingValue}\`}`, `{\`${escapedValue}\`}`);
+  });
+};
+
+const resizeTextareaToContent = (textarea) => {
+  if (!textarea) return;
+  textarea.style.height = 'auto';
+  textarea.style.height = `${textarea.scrollHeight}px`;
+};
+
 // Set up PDF.js worker - use the correct .mjs extension
 const setupPDFWorker = () => {
   console.log('PDF.js version:', pdfjs.version);
@@ -59,6 +177,8 @@ Font.register({
 function App() {
   const [selectedTemplate, setSelectedTemplate] = useState('quixote');
   const [code, setCode] = useState(() => templates.quixote);
+  const [isGuiMode, setIsGuiMode] = useState(false);
+  const [guiFields, setGuiFields] = useState([]);
   const [documentComponent, setDocumentComponent] = useState(null);
   const [pdfBlob, setPdfBlob] = useState(null);
   const [numPages, setNumPages] = useState(null);
@@ -66,6 +186,7 @@ function App() {
   const [zoom, setZoom] = useState(1.0);
   const [currentPage, setCurrentPage] = useState(1);
   const [saveMessage, setSaveMessage] = useState('');
+  const isGuiTemplate = selectedTemplate === GUI_TEMPLATE_NAME;
 
   // Function to generate PDF blob from component
   const generatePDF = async (component) => {
@@ -282,15 +403,49 @@ function App() {
   };
 
   const handleClearCode = () => {
-    setCode(templates.quixote);
-    setSelectedTemplate('quixote');
+    setCode(templates[selectedTemplate] || templates.quixote);
+    setIsGuiMode(false);
+    setSaveMessage('');
   };
 
   const handleTemplateChange = (templateName) => {
     setCode(templates[templateName]);
     setSelectedTemplate(templateName);
+    setIsGuiMode(false);
     setSaveMessage('');
   };
+
+  const handleGuiModeToggle = () => {
+    if (!isGuiTemplate) return;
+    setIsGuiMode((prev) => !prev);
+  };
+
+  const handleGuiFieldChange = (fieldId, value) => {
+    setGuiFields((previousFields) => {
+      const nextFields = previousFields.map((field) => (
+        field.id === fieldId ? { ...field, value } : field
+      ));
+
+      setCode((previousCode) => applyGuiFieldValuesToCode(previousCode, nextFields));
+      return nextFields;
+    });
+  };
+
+  useEffect(() => {
+    if (!isGuiTemplate) {
+      setGuiFields([]);
+      return;
+    }
+
+    setGuiFields(extractGuiFieldsFromCode(code));
+  }, [code, isGuiTemplate]);
+
+  useEffect(() => {
+    if (!(isGuiMode && isGuiTemplate)) return;
+
+    const textareas = document.querySelectorAll('.gui-field-textarea');
+    textareas.forEach((textarea) => resizeTextareaToContent(textarea));
+  }, [guiFields, isGuiMode, isGuiTemplate]);
 
   const handleDownload = async () => {
     if (pdfBlob) {
@@ -346,6 +501,7 @@ function App() {
             className="template-selector"
           >
             <option value="quixote">Don Quixote</option>
+            <option value="quixoteGui">Don Quixote (GUI Mode)</option>
             <option value="simple">Simple Document</option>
             <option value="resume">Resume</option>
             <option value="invoice">Invoice</option>
@@ -369,30 +525,67 @@ function App() {
           <div className="panel-header">
             <h2>Code Editor</h2>
             <div className="panel-actions">
+              <button
+                className={`btn ${isGuiMode ? 'btn-primary' : 'btn-secondary'}`}
+                onClick={handleGuiModeToggle}
+                disabled={!isGuiTemplate}
+                title={isGuiTemplate ? 'Toggle GUI mode' : 'GUI mode is only available for Don Quixote (GUI Mode)'}
+              >
+                GUI mode
+              </button>
               <span className="language-tag">JavaScript</span>
             </div>
           </div>
           <div className="editor-container">
-            <MonacoEditor
-              height="100%"
-              defaultLanguage="javascript"
-              value={code}
-              onChange={handleEditorChange}
-              theme="vs-dark"
-              options={{
-                fontSize: 14,
-                minimap: { enabled: false },
-                wordWrap: 'on',
-                lineNumbers: 'on',
-                scrollBeyondLastLine: false,
-                automaticLayout: true,
-                tabSize: 2,
-                insertSpaces: true,
-                folding: true,
-                lineDecorationsWidth: 10,
-                lineNumbersMinChars: 3,
-              }}
-            />
+            {isGuiMode && isGuiTemplate ? (
+              <div className="gui-mode-container">
+                <div className="gui-mode-note">
+                  Edit OpenSans-Regular values for this template.
+                </div>
+                {guiFields.map((field) => (
+                  <label key={field.id} className="gui-field">
+                    <span className="gui-field-label">{field.label}</span>
+                    {field.multiline ? (
+                      <textarea
+                        className="gui-field-input gui-field-textarea"
+                        rows={1}
+                        value={field.value}
+                        onInput={(e) => resizeTextareaToContent(e.target)}
+                        onChange={(e) => handleGuiFieldChange(field.id, e.target.value)}
+                      />
+                    ) : (
+                      <input
+                        className="gui-field-input"
+                        type="text"
+                        value={field.value}
+                        onChange={(e) => handleGuiFieldChange(field.id, e.target.value)}
+                      />
+                    )}
+                  </label>
+                ))}
+              </div>
+            ) : (
+              <MonacoEditor
+                height="100%"
+                defaultLanguage="javascript"
+                value={code}
+                onChange={handleEditorChange}
+                theme="vs-dark"
+                options={{
+                  fontSize: 14,
+                  minimap: { enabled: false },
+                  wordWrap: 'on',
+                  lineNumbers: 'on',
+                  scrollBeyondLastLine: false,
+                  automaticLayout: true,
+                  tabSize: 2,
+                  insertSpaces: true,
+                  folding: true,
+                  lineDecorationsWidth: 10,
+                  lineNumbersMinChars: 3,
+                }}
+              />
+            )}
           </div>
         </div>          <div className="preview-panel">
           <div className="panel-header">
