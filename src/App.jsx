@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import MonacoEditor from '@monaco-editor/react';
 import { Document as PDFDocument, Page as PDFPage, Text, View, StyleSheet, pdf, Font, Image } from '@react-pdf/renderer';
 import { Document, Page, pdfjs } from 'react-pdf';
@@ -184,9 +184,112 @@ function App() {
   const [numPages, setNumPages] = useState(null);
   const [error, setError] = useState(null);
   const [zoom, setZoom] = useState(1.0);
-  const [currentPage, setCurrentPage] = useState(1);
   const [saveMessage, setSaveMessage] = useState('');
+  const previewContainerRef = useRef(null);
+  const pdfViewerContainerRef = useRef(null);
+  const pageElementsRef = useRef(new Map());
+  const pendingScrollRestoreRef = useRef(null);
+  const renderedPagesRef = useRef(new Set());
+  const expectedPageCountRef = useRef(0);
+  const restoreAnimationFrameRef = useRef(null);
   const isGuiTemplate = selectedTemplate === GUI_TEMPLATE_NAME;
+
+  const getScrollContainer = () => pdfViewerContainerRef.current || previewContainerRef.current;
+
+  const captureScrollAnchor = () => {
+    const container = getScrollContainer();
+    if (!container) return;
+
+    const maxScrollTop = Math.max(container.scrollHeight - container.clientHeight, 0);
+    const scrollPercentage = maxScrollTop > 0 ? container.scrollTop / maxScrollTop : 0;
+
+    const pageEntries = Array.from(pageElementsRef.current.entries())
+      .filter(([, element]) => element)
+      .sort(([a], [b]) => a - b);
+
+    let anchorPageNumber = 1;
+    let anchorOffsetRatio = 0;
+
+    if (pageEntries.length > 0) {
+      const viewportTop = container.getBoundingClientRect().top;
+      let selected = pageEntries[0];
+
+      for (const entry of pageEntries) {
+        const rect = entry[1].getBoundingClientRect();
+        if (rect.bottom > viewportTop + 1) {
+          selected = entry;
+          break;
+        }
+      }
+
+      anchorPageNumber = selected[0];
+      const selectedRect = selected[1].getBoundingClientRect();
+      const pageHeight = selectedRect.height || 1;
+      const scrolledIntoPage = Math.max(viewportTop - selectedRect.top, 0);
+      anchorOffsetRatio = Math.min(scrolledIntoPage / pageHeight, 1);
+    }
+
+    pendingScrollRestoreRef.current = {
+      anchorPageNumber,
+      anchorOffsetRatio,
+      scrollPercentage,
+    };
+  };
+
+  const restoreScrollAnchor = () => {
+    const anchor = pendingScrollRestoreRef.current;
+    const container = getScrollContainer();
+    if (!anchor || !container) return;
+
+    if (restoreAnimationFrameRef.current) {
+      cancelAnimationFrame(restoreAnimationFrameRef.current);
+    }
+
+    restoreAnimationFrameRef.current = requestAnimationFrame(() => {
+      const anchoredPageElement = pageElementsRef.current.get(anchor.anchorPageNumber);
+      const maxScrollTop = Math.max(container.scrollHeight - container.clientHeight, 0);
+
+      if (anchoredPageElement) {
+        const targetTop = anchoredPageElement.offsetTop + (anchoredPageElement.clientHeight * anchor.anchorOffsetRatio);
+        container.scrollTop = Math.min(Math.max(targetTop, 0), maxScrollTop);
+      } else {
+        container.scrollTop = Math.min(Math.max(maxScrollTop * anchor.scrollPercentage, 0), maxScrollTop);
+      }
+
+      restoreAnimationFrameRef.current = requestAnimationFrame(() => {
+        const recalculatedMaxScrollTop = Math.max(container.scrollHeight - container.clientHeight, 0);
+        const fallbackScrollTop = Math.min(
+          Math.max(recalculatedMaxScrollTop * anchor.scrollPercentage, 0),
+          recalculatedMaxScrollTop
+        );
+
+        if (!anchoredPageElement) {
+          container.scrollTop = fallbackScrollTop;
+        }
+
+        pendingScrollRestoreRef.current = null;
+        restoreAnimationFrameRef.current = null;
+      });
+    });
+  };
+
+  const handlePageRenderSuccess = (pageNumber) => {
+    renderedPagesRef.current.add(pageNumber);
+
+    if (
+      pendingScrollRestoreRef.current &&
+      expectedPageCountRef.current > 0 &&
+      renderedPagesRef.current.size >= expectedPageCountRef.current
+    ) {
+      restoreScrollAnchor();
+    }
+  };
+
+  useEffect(() => () => {
+    if (restoreAnimationFrameRef.current) {
+      cancelAnimationFrame(restoreAnimationFrameRef.current);
+    }
+  }, []);
 
   // Function to generate PDF blob from component
   const generatePDF = async (component) => {
@@ -196,6 +299,7 @@ function App() {
       console.log('Generating PDF for component:', component);
       const blob = await pdf(React.createElement(component)).toBlob();
       console.log('PDF blob generated successfully:', blob);
+      captureScrollAnchor();
       setPdfBlob(blob);
     } catch (err) {
       console.error('PDF generation error:', err);
@@ -320,7 +424,7 @@ function App() {
     }
   }, [documentComponent, error]);
 
-  // Keyboard shortcuts for zoom and page navigation
+  // Keyboard shortcuts for zoom controls
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.target.closest('.editor-container')) return; // Don't interfere with editor
@@ -341,27 +445,12 @@ function App() {
             handleZoomFit();
             break;
         }
-      } else {
-        switch (e.key) {
-          case 'ArrowLeft':
-            if (pdfBlob && numPages > 1) {
-              e.preventDefault();
-              handlePrevPage();
-            }
-            break;
-          case 'ArrowRight':
-            if (pdfBlob && numPages > 1) {
-              e.preventDefault();
-              handleNextPage();
-            }
-            break;
-        }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [pdfBlob, numPages, currentPage, zoom]); // Added currentPage and zoom to dependencies
+  }, [zoom]);
 
   const handleEditorChange = (value) => {
     setCode(value || '');
@@ -470,14 +559,6 @@ function App() {
 
   const handleZoomFit = () => {
     setZoom(1.0);
-  };
-
-  const handlePrevPage = () => {
-    setCurrentPage(prev => Math.max(prev - 1, 1));
-  };
-
-  const handleNextPage = () => {
-    setCurrentPage(prev => Math.min(prev + 1, numPages || 1));
   };
 
   // Calculate PDF width based on container size
@@ -618,32 +699,21 @@ function App() {
                       Fit
                     </button>
                   </div>
-                  {numPages > 1 && (
-                    <div className="page-controls">
-                      <button className="btn btn-page" onClick={handlePrevPage} disabled={currentPage <= 1}>
-                        ‹
-                      </button>
-                      <span className="page-info">
-                        {currentPage} / {numPages}
-                      </span>
-                      <button className="btn btn-page" onClick={handleNextPage} disabled={currentPage >= numPages}>
-                        ›
-                      </button>
-                    </div>
-                  )}
                 </div>
               )}
             </div>
           </div>
-          <div className="preview-container">
+          <div className="preview-container" ref={previewContainerRef}>
             {pdfBlob && !error ? (
-              <div className="pdf-viewer-container">
+              <div className="pdf-viewer-container" ref={pdfViewerContainerRef}>
                 <Document
                   file={pdfBlob}
                   onLoadSuccess={({ numPages }) => {
                     console.log('PDF loaded successfully, pages:', numPages);
+                    pageElementsRef.current.clear();
+                    renderedPagesRef.current.clear();
+                    expectedPageCountRef.current = numPages;
                     setNumPages(numPages);
-                    setCurrentPage(1); // Reset to first page
                     setError(null); // Clear any previous errors
                   }}
                   onLoadError={(error) => {
@@ -663,20 +733,25 @@ function App() {
                     </div>
                   }
                 >
-                  <Page
-                    key={currentPage}
-                    pageNumber={currentPage}
-                    width={calculatePDFWidth()}
-                    renderTextLayer={false}
-                    renderAnnotationLayer={false}
-                    className="pdf-page"
-                  />
+                  {Array.from(new Array(numPages || 0), (_, index) => (
+                    <Page
+                      key={`page_${index + 1}`}
+                      pageNumber={index + 1}
+                      inputRef={(node) => {
+                        if (node) {
+                          pageElementsRef.current.set(index + 1, node);
+                        } else {
+                          pageElementsRef.current.delete(index + 1);
+                        }
+                      }}
+                      onRenderSuccess={() => handlePageRenderSuccess(index + 1)}
+                      width={calculatePDFWidth()}
+                      renderTextLayer={false}
+                      renderAnnotationLayer={false}
+                      className="pdf-page"
+                    />
+                  ))}
                 </Document>
-                {numPages > 1 && (
-                  <div className="page-info-bottom">
-                    Page {currentPage} of {numPages}
-                  </div>
-                )}
               </div>
             ) : (
               <div className="preview-placeholder">
