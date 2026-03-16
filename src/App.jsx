@@ -4,8 +4,12 @@ import { Document as PDFDocument, Page as PDFPage, Text, View, StyleSheet, pdf, 
 import { Document, Page, pdfjs } from 'react-pdf';
 import * as Babel from '@babel/standalone';
 import { templates } from './templates';
+import openSansLight from './fonts/OpenSans/OpenSans-Light.ttf';
+import openSansRegular from './fonts/OpenSans/OpenSans-Regular.ttf';
 import openSansMedium from './fonts/OpenSans/OpenSans-Medium.ttf';
 import openSansSemiBold from './fonts/OpenSans/OpenSans-SemiBold.ttf';
+import openSansBold from './fonts/OpenSans/OpenSans-Bold.ttf';
+import openSansExtraBold from './fonts/OpenSans/OpenSans-ExtraBold.ttf';
 import './App.css';
 
 // Set up PDF.js worker - use the correct .mjs extension
@@ -23,6 +27,16 @@ setupPDFWorker();
 
 // Register fonts
 Font.register({
+  family: 'OpenSans-Light',
+  src: openSansLight
+});
+
+Font.register({
+  family: 'OpenSans-Regular',
+  src: openSansRegular
+});
+
+Font.register({
   family: 'OpenSans-Medium',
   src: openSansMedium
 });
@@ -30,6 +44,16 @@ Font.register({
 Font.register({
   family: 'OpenSans-SemiBold',
   src: openSansSemiBold
+});
+
+Font.register({
+  family: 'OpenSans-Bold',
+  src: openSansBold
+});
+
+Font.register({
+  family: 'OpenSans-ExtraBold',
+  src: openSansExtraBold
 });
 
 function App() {
@@ -447,6 +471,7 @@ function App() {
                   }
                 >
                   <Page
+                    key={currentPage}
                     pageNumber={currentPage}
                     width={calculatePDFWidth()}
                     renderTextLayer={false}

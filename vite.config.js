@@ -19,14 +19,16 @@ const escapeTemplateLiteralContent = (value) => (
 
 const replaceTemplateSource = (source, templateName, code) => {
   const escapedTemplateName = escapeRegExp(templateName)
-  const entryRegex = new RegExp(`(${escapedTemplateName}\\s*:\\s*\`)([\\s\\S]*?)(\`,)`)
+  const entryRegex = new RegExp(`(${escapedTemplateName}\\s*:\\s*\`)([\\s\\S]*?)(?<!\\\\)(\`)(?=\\s*,|\\s*})`)
 
   if (!entryRegex.test(source)) {
     throw new Error(`Template "${templateName}" was not found in src/templates.js.`)
   }
 
   const escapedCode = escapeTemplateLiteralContent(code)
-  return source.replace(entryRegex, `$1${escapedCode}$3`)
+  return source.replace(entryRegex, (_match, prefix, _existingCode, suffix) => (
+    `${prefix}${escapedCode}${suffix}`
+  ))
 }
 
 // https://vite.dev/config/
