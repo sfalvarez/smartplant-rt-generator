@@ -17,6 +17,7 @@ const REGULAR_TEXT_PATTERN = /<Text style=\{\{[^}]*fontFamily:\s*'OpenSans-Regul
 const SEMIBOLD_TEXT_PATTERN = /<Text style=\{\{[^}]*fontFamily:\s*'OpenSans-SemiBold'[^}]*\}\}[^>]*>\s*([\s\S]*?)\s*<\/Text>/g;
 const BOLD_TEXT_PATTERN = /<Text style=\{\{[^}]*fontFamily:\s*'OpenSans-Bold'[^}]*\}\}[^>]*>\s*([\s\S]*?)\s*<\/Text>/g;
 const ARROW_TOKEN = '__GUI_ARROW_TOKEN__';
+const PDF_GENERATION_DEBOUNCE_MS = 450;
 
 const cleanLabelText = (value) => (
   value
@@ -192,6 +193,7 @@ function App() {
   const renderedPagesRef = useRef(new Set());
   const expectedPageCountRef = useRef(0);
   const restoreAnimationFrameRef = useRef(null);
+  const generationRef = useRef(0);
   const isGuiTemplate = selectedTemplate === GUI_TEMPLATE_NAME;
 
   const getScrollContainer = () => pdfViewerContainerRef.current || previewContainerRef.current;
@@ -295,11 +297,18 @@ function App() {
   const generatePDF = async (component) => {
     try {
       if (!component) return;
+      const generation = generationRef.current + 1;
+      generationRef.current = generation;
 
       console.log('Generating PDF for component:', component);
       const blob = await pdf(React.createElement(component)).toBlob();
+      if (generation !== generationRef.current) {
+        return;
+      }
       console.log('PDF blob generated successfully:', blob);
-      captureScrollAnchor();
+      if (pdfBlob) {
+        captureScrollAnchor();
+      }
       setPdfBlob(blob);
     } catch (err) {
       console.error('PDF generation error:', err);
@@ -418,10 +427,13 @@ function App() {
   // Generate PDF when document component changes
   useEffect(() => {
     if (documentComponent && !error) {
-      generatePDF(documentComponent);
-    } else {
-      setPdfBlob(null);
+      const timeoutId = setTimeout(() => {
+        generatePDF(documentComponent);
+      }, PDF_GENERATION_DEBOUNCE_MS);
+
+      return () => clearTimeout(timeoutId);
     }
+    return undefined;
   }, [documentComponent, error]);
 
   // Keyboard shortcuts for zoom controls
@@ -704,7 +716,7 @@ function App() {
             </div>
           </div>
           <div className="preview-container" ref={previewContainerRef}>
-            {pdfBlob && !error ? (
+            {pdfBlob ? (
               <div className="pdf-viewer-container" ref={pdfViewerContainerRef}>
                 <Document
                   file={pdfBlob}
@@ -720,12 +732,7 @@ function App() {
                     console.error('PDF load error:', error);
                     setError('Failed to load PDF: ' + error.message);
                   }}
-                  loading={
-                    <div className="loading">
-                      <div className="loading-spinner"></div>
-                      <p>Loading PDF...</p>
-                    </div>
-                  }
+                  loading={null}
                   error={
                     <div className="error-display">
                       <h3>Failed to load PDF</h3>
