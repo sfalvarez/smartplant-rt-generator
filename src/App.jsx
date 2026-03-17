@@ -29,6 +29,9 @@ const SEMIBOLD_TEXT_PATTERN = /<Text style=\{\{[^}]*fontFamily:\s*'OpenSans-Semi
 const BOLD_TEXT_PATTERN = /<Text style=\{\{[^}]*fontFamily:\s*'OpenSans-Bold'[^}]*\}\}[^>]*>\s*([\s\S]*?)\s*<\/Text>/g;
 const ARROW_TOKEN = '__GUI_ARROW_TOKEN__';
 const PDF_GENERATION_DEBOUNCE_MS = 450;
+const IMAGE_MARKER_PREFIX = '[[IMG:';
+const IMAGE_MARKER_SUFFIX = ']]';
+const IMAGE_MARKER_REGEX = /\[\[IMG:([\s\S]*?)\]\]/g;
 const GUI_HIDDEN_LABEL_PATTERNS = [
   /^revision no$/,
   /^estado$/,
@@ -36,6 +39,81 @@ const GUI_HIDDEN_LABEL_PATTERNS = [
   /^valoracion ram$/,
   /^fecha de elaboracion$/,
 ];
+const GUI_IMAGE_ENABLED_LABEL_PATTERNS = [
+  /^diseno$/,
+  /^antecedentes$/,
+  /origen.*valoracion.*priorizacion.*tarea.*mantenimiento/,
+  /^diagnostico 1$/,
+  /detalle de la accion/,
+  /listado de materiales.*repuestos/,
+  /controles? de calidad.*estandar de evaluacion/,
+  /control de calidad requerido/,
+];
+
+const RICH_PDF_CONTENT_HELPERS = String.raw`const IMAGE_MARKER_PATTERN = /\[\[IMG:([\s\S]*?)\]\]/g;
+
+const richContentStyles = StyleSheet.create({
+  block: {
+    flexDirection: 'column',
+  },
+  line: {
+    fontFamily: 'OpenSans-Regular',
+  },
+  image: {
+    width: '100%',
+    objectFit: 'contain',
+    marginTop: 2,
+    marginBottom: 2,
+  },
+});
+
+const renderRichPdfContent = (content) => {
+  const value = typeof content === 'string' ? content : '';
+  const nodes = [];
+  let keyIndex = 0;
+  let lastIndex = 0;
+
+  IMAGE_MARKER_PATTERN.lastIndex = 0;
+
+  const pushTextSegment = (segment) => {
+    if (segment === undefined || segment === null) return;
+
+    const lines = String(segment).split('\\n');
+    lines.forEach((line, lineIndex) => {
+      const shouldRenderLine = line.length > 0 || lineIndex < lines.length - 1;
+      if (!shouldRenderLine) return;
+
+      nodes.push(
+        <Text key={'rich-text-' + keyIndex++} style={richContentStyles.line}>
+          {line.length > 0 ? line : ' '}
+        </Text>
+      );
+    });
+  };
+
+  let match = IMAGE_MARKER_PATTERN.exec(value);
+  while (match) {
+    const textBeforeImage = value.slice(lastIndex, match.index);
+    pushTextSegment(textBeforeImage);
+
+    const imageSource = match[1];
+    if (imageSource) {
+      nodes.push(
+        <Image
+          key={'rich-image-' + keyIndex++}
+          style={richContentStyles.image}
+          src={imageSource}
+        />
+      );
+    }
+
+    lastIndex = match.index + match[0].length;
+    match = IMAGE_MARKER_PATTERN.exec(value);
+  }
+
+  pushTextSegment(value.slice(lastIndex));
+  return nodes;
+};`;
 
 const cleanLabelText = (value) => (
   value
@@ -66,6 +144,294 @@ const normalizeLabel = (label) => (
 const isHiddenGuiLabel = (label) => {
   const normalized = normalizeLabel(label);
   return GUI_HIDDEN_LABEL_PATTERNS.some((pattern) => pattern.test(normalized));
+};
+
+const isImageEnabledGuiLabel = (label) => {
+  const normalized = normalizeLabel(label);
+  return GUI_IMAGE_ENABLED_LABEL_PATTERNS.some((pattern) => pattern.test(normalized));
+};
+
+const fileToDataUrl = (file) => new Promise((resolve, reject) => {
+  const reader = new FileReader();
+  reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result : '');
+  reader.onerror = () => reject(reader.error || new Error('Failed to read pasted image.'));
+  reader.readAsDataURL(file);
+});
+
+const normalizeImageMarkerLineBreaks = (rawValue) => {
+  if (!rawValue.includes(IMAGE_MARKER_PREFIX)) {
+    return rawValue;
+  }
+
+  let result = '';
+  let lastIndex = 0;
+  IMAGE_MARKER_REGEX.lastIndex = 0;
+
+  let match = IMAGE_MARKER_REGEX.exec(rawValue);
+  while (match) {
+    result += rawValue.slice(lastIndex, match.index);
+
+    if (result.length > 0 && !result.endsWith('\n')) {
+      result += '\n';
+    }
+
+    result += `${IMAGE_MARKER_PREFIX}${match[1]}${IMAGE_MARKER_SUFFIX}`;
+
+    const nextChar = rawValue.charAt(match.index + match[0].length);
+    if (nextChar && nextChar !== '\n') {
+      result += '\n';
+    }
+
+    lastIndex = match.index + match[0].length;
+    match = IMAGE_MARKER_REGEX.exec(rawValue);
+  }
+
+  result += rawValue.slice(lastIndex);
+  return result;
+};
+
+const appendTextWithLineBreaks = (fragment, textValue) => {
+  if (!textValue) return;
+
+  const lines = textValue.split('\n');
+  lines.forEach((line, index) => {
+    if (line.length > 0) {
+      fragment.appendChild(document.createTextNode(line));
+    }
+
+    if (index < lines.length - 1) {
+      fragment.appendChild(document.createElement('br'));
+    }
+  });
+};
+
+const populateRichEditorFromRaw = (editorElement, rawValue) => {
+  const fragment = document.createDocumentFragment();
+  const normalizedRawValue = normalizeImageMarkerLineBreaks(rawValue || '');
+  let lastIndex = 0;
+  IMAGE_MARKER_REGEX.lastIndex = 0;
+
+  let match = IMAGE_MARKER_REGEX.exec(normalizedRawValue);
+  while (match) {
+    const textBeforeImage = normalizedRawValue.slice(lastIndex, match.index);
+    appendTextWithLineBreaks(fragment, textBeforeImage);
+
+    const imageElement = document.createElement('img');
+    imageElement.src = match[1];
+    imageElement.alt = 'Pasted image';
+    imageElement.className = 'my-1 block max-h-52 w-auto max-w-full rounded border border-slate-300 bg-white';
+    imageElement.setAttribute('data-image-marker', 'true');
+    fragment.appendChild(imageElement);
+    fragment.appendChild(document.createElement('br'));
+
+    lastIndex = match.index + match[0].length;
+    match = IMAGE_MARKER_REGEX.exec(normalizedRawValue);
+  }
+
+  appendTextWithLineBreaks(fragment, normalizedRawValue.slice(lastIndex));
+  editorElement.replaceChildren(fragment);
+};
+
+const extractRawFromRichEditor = (editorElement) => {
+  let rawValue = '';
+
+  const walkNode = (node) => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      rawValue += (node.textContent || '').replace(/\u00A0/g, ' ');
+      return;
+    }
+
+    if (node.nodeType !== Node.ELEMENT_NODE) {
+      return;
+    }
+
+    const element = node;
+    const tagName = element.tagName;
+
+    if (tagName === 'BR') {
+      rawValue += '\n';
+      return;
+    }
+
+    if (tagName === 'IMG' && element.getAttribute('data-image-marker') === 'true') {
+      const source = element.getAttribute('src') || '';
+      if (!source) return;
+
+      if (rawValue.length > 0 && !rawValue.endsWith('\n')) {
+        rawValue += '\n';
+      }
+
+      rawValue += `${IMAGE_MARKER_PREFIX}${source}${IMAGE_MARKER_SUFFIX}`;
+
+      if (element.nextSibling && !rawValue.endsWith('\n')) {
+        rawValue += '\n';
+      }
+      return;
+    }
+
+    const isBlockElement = tagName === 'DIV' || tagName === 'P' || tagName === 'LI';
+    element.childNodes.forEach(walkNode);
+
+    if (isBlockElement && element.nextSibling && !rawValue.endsWith('\n')) {
+      rawValue += '\n';
+    }
+  };
+
+  editorElement.childNodes.forEach(walkNode);
+  return normalizeImageMarkerLineBreaks(rawValue);
+};
+
+const RichImageTextarea = ({ value, onChange }) => {
+  const editorRef = useRef(null);
+
+  useEffect(() => {
+    const editorElement = editorRef.current;
+    if (!editorElement) return;
+
+    const currentRawValue = extractRawFromRichEditor(editorElement);
+    const normalizedPropValue = normalizeImageMarkerLineBreaks(value || '');
+    if (currentRawValue === normalizedPropValue) {
+      return;
+    }
+
+    populateRichEditorFromRaw(editorElement, normalizedPropValue);
+  }, [value]);
+
+  const emitChange = () => {
+    const editorElement = editorRef.current;
+    if (!editorElement) return;
+
+    const nextRawValue = extractRawFromRichEditor(editorElement);
+    onChange(nextRawValue);
+  };
+
+  const handlePaste = async (event) => {
+    const items = Array.from(event.clipboardData?.items || []);
+    const imageFiles = items
+      .filter((item) => item.type?.startsWith('image/'))
+      .map((item) => item.getAsFile())
+      .filter(Boolean);
+
+    if (!imageFiles.length) {
+      return;
+    }
+
+    event.preventDefault();
+
+    try {
+      const imageDataUrls = await Promise.all(imageFiles.map((file) => fileToDataUrl(file)));
+      const validDataUrls = imageDataUrls.filter(Boolean);
+      if (!validDataUrls.length) {
+        return;
+      }
+
+      const selection = window.getSelection();
+      if (!selection || selection.rangeCount === 0) {
+        return;
+      }
+
+      const range = selection.getRangeAt(0);
+      range.deleteContents();
+
+      const fragment = document.createDocumentFragment();
+      validDataUrls.forEach((imageSource) => {
+        fragment.appendChild(document.createElement('br'));
+
+        const imageElement = document.createElement('img');
+        imageElement.src = imageSource;
+        imageElement.alt = 'Pasted image';
+        imageElement.className = 'my-1 block max-h-52 w-auto max-w-full rounded border border-slate-300 bg-white';
+        imageElement.setAttribute('data-image-marker', 'true');
+        fragment.appendChild(imageElement);
+
+        fragment.appendChild(document.createElement('br'));
+      });
+
+      const caretAnchor = document.createTextNode('');
+      fragment.appendChild(caretAnchor);
+      range.insertNode(fragment);
+
+      const nextRange = document.createRange();
+      nextRange.setStartAfter(caretAnchor);
+      nextRange.collapse(true);
+      selection.removeAllRanges();
+      selection.addRange(nextRange);
+
+      emitChange();
+    } catch (pasteError) {
+      console.error('Failed to process pasted image:', pasteError);
+    }
+  };
+
+  return (
+    <div
+      ref={editorRef}
+      contentEditable
+      suppressContentEditableWarning
+      className="gui-field-textarea min-h-[90px] w-full overflow-auto whitespace-pre-wrap break-words bg-white px-2 py-2 text-sm text-slate-900 outline-none ring-inset focus:ring-1 focus:ring-sky-500"
+      onInput={emitChange}
+      onPaste={handlePaste}
+    />
+  );
+};
+
+const injectRichContentHelpers = (codeString) => {
+  if (codeString.includes('const IMAGE_MARKER_PATTERN = /\\[\\[IMG:([\\s\\S]*?)\\]\\]/g;')) {
+    return codeString;
+  }
+
+  if (codeString.includes('const Quixote = () => (')) {
+    return codeString.replace('const Quixote = () => (', `${RICH_PDF_CONTENT_HELPERS}\n\nconst Quixote = () => (`);
+  }
+
+  return `${RICH_PDF_CONTENT_HELPERS}\n\n${codeString}`;
+};
+
+const transformRichContentFieldsForPdf = (codeString) => {
+  if (!codeString.includes(IMAGE_MARKER_PREFIX)) {
+    return codeString;
+  }
+
+  REGULAR_TEXT_PATTERN.lastIndex = 0;
+  let replacementCount = 0;
+
+  const transformedCode = codeString.replace(REGULAR_TEXT_PATTERN, (fullMatch, existingValue, matchIndex, source) => {
+    const contextBefore = normalizeContextForLabelMatching(
+      source.slice(Math.max(0, matchIndex - 1800), matchIndex)
+    );
+    const contextAfter = normalizeContextForLabelMatching(
+      source.slice(matchIndex, Math.min(source.length, matchIndex + 700))
+    );
+    const semiBoldPattern = new RegExp(SEMIBOLD_TEXT_PATTERN.source, 'g');
+    const boldPattern = new RegExp(BOLD_TEXT_PATTERN.source, 'g');
+    const semiBoldPatternForward = new RegExp(SEMIBOLD_TEXT_PATTERN.source, 'g');
+    const boldPatternForward = new RegExp(BOLD_TEXT_PATTERN.source, 'g');
+
+    const label = (
+      getLastLabelFromContext(contextBefore, semiBoldPattern) ||
+      getLastLabelFromContext(contextBefore, boldPattern) ||
+      getFirstLabelFromContext(contextAfter, semiBoldPatternForward) ||
+      getFirstLabelFromContext(contextAfter, boldPatternForward)
+    );
+
+    if (!label || !isImageEnabledGuiLabel(label)) {
+      return fullMatch;
+    }
+
+    replacementCount += 1;
+    const escapedValue = existingValue
+      .replace(/\\/g, '\\\\')
+      .replace(/`/g, '\\`')
+      .replace(/\$\{/g, '\\${');
+
+    return `<View style={richContentStyles.block}>{renderRichPdfContent(\`${escapedValue}\`)}</View>`;
+  });
+
+  if (!replacementCount) {
+    return codeString;
+  }
+
+  return injectRichContentHelpers(transformedCode);
 };
 
 const findNthField = (fields, matcher, occurrence = 1) => {
@@ -415,8 +781,10 @@ function App() {
       // Clear previous errors
       setError(null);
 
+      const preparedCode = isGuiTemplate ? transformRichContentFieldsForPdf(codeString) : codeString;
+
       // Transform JSX to regular JavaScript using Babel
-      const transformedCode = Babel.transform(codeString, {
+      const transformedCode = Babel.transform(preparedCode, {
         presets: ['react'],
         plugins: []
       }).code;
@@ -673,6 +1041,7 @@ function App() {
 
     const labelText = cleanGuiDisplayLabel(field.label);
     const useTextarea = field.multiline || field.value.length > 90;
+    const isImageEnabled = isImageEnabledGuiLabel(field.label);
 
     return (
       <label key={field.id} className="flex flex-col">
@@ -680,13 +1049,20 @@ function App() {
           {labelText}
         </span>
         {useTextarea ? (
-          <Textarea
-            className="gui-field-textarea min-h-[90px] w-full resize-none bg-white px-2 py-2 text-sm text-slate-900 outline-none ring-inset focus:ring-1 focus:ring-sky-500"
-            rows={1}
-            value={field.value}
-            onInput={(e) => resizeTextareaToContent(e.target)}
-            onChange={(e) => handleGuiFieldChange(field.id, e.target.value)}
-          />
+          isImageEnabled ? (
+            <RichImageTextarea
+              value={field.value}
+              onChange={(nextValue) => handleGuiFieldChange(field.id, nextValue)}
+            />
+          ) : (
+            <Textarea
+              className="gui-field-textarea min-h-[90px] w-full resize-none bg-white px-2 py-2 text-sm text-slate-900 outline-none ring-inset focus:ring-1 focus:ring-sky-500"
+              rows={1}
+              value={field.value}
+              onInput={(e) => resizeTextareaToContent(e.target)}
+              onChange={(e) => handleGuiFieldChange(field.id, e.target.value)}
+            />
+          )
         ) : (
           <Input
             className="w-full bg-white px-2 py-2 text-sm text-slate-900 outline-none ring-inset focus:ring-1 focus:ring-sky-500"

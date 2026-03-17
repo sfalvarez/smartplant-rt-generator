@@ -617,7 +617,7 @@ const Quixote = () => (
       <Text
         style={styles.pageNumber}
         render={({ pageNumber, totalPages }) =>
-          'RT-GRB-00000 Revisión 0                                                                                                         Página ' + pageNumber + ' / ' + totalPages
+          'RT-GRB-00006 Revisión 0                                                                                                         Página ' + pageNumber + ' / ' + totalPages
         }
         fixed
       />
@@ -650,7 +650,7 @@ const Quixote = () => (
         <View style={{ flexDirection: 'row' }}>
           <View style={{ ...styles.tableCell, ...{ width: '16.65%' } }}>
             <Text style={{ fontFamily: 'OpenSans-SemiBold', textAlign: 'left' }}>
-              RT-GRB-00000
+              RT-GRB-00006
             </Text>
           </View>
           <View style={{ ...styles.tableCell, ...{ width: '16.8%' } }}>
@@ -696,7 +696,7 @@ const Quixote = () => (
               </Text>
               {' '}
               <Text style={{ fontFamily: 'OpenSans-Regular' }}>
-                {\`14/06/2025\`}
+                {\`30/04/2026\`}
               </Text>
             </Text>
           </View>
@@ -707,7 +707,7 @@ const Quixote = () => (
               </Text>
               {' '}
               <Text style={{ fontFamily: 'OpenSans-Regular' }}>
-                {\`Departamento de Cracking Catalítico II\`}
+                {\`Departamento de Craqueo Catalítico II-III\`}
               </Text>
             </Text>
           </View>
@@ -721,7 +721,7 @@ const Quixote = () => (
               </Text>
               {' '}
               <Text style={{ fontFamily: 'OpenSans-Regular' }}>
-                {\`Vapor\`}
+                {\`Torre silenciadora\`}
               </Text>
             </Text>
           </View>
@@ -732,7 +732,7 @@ const Quixote = () => (
               </Text>
               {' '}
               <Text style={{ fontFamily: 'OpenSans-Regular' }}>
-                {\`SLC420023GR01 / SLC420022GR01 / SLC420021GR01\`}
+                {\`SSI4201\`}
               </Text>
             </Text>
           </View>
@@ -746,7 +746,7 @@ const Quixote = () => (
               </Text>
               {' '}
               <Text style={{ fontFamily: 'OpenSans-Regular' }}>
-                {\`Mantenimiento Mayor\`}
+                {\`Mantenimiento Rutinario\`}
               </Text>
             </Text>
           </View>
@@ -793,7 +793,7 @@ const Quixote = () => (
               </Text>
               {' '}
               <Text style={{ fontFamily: 'OpenSans-Regular' }}>
-                {\`200421332\`}
+                {\`\`}
               </Text>
             </Text>
           </View>
@@ -832,7 +832,7 @@ const Quixote = () => (
           </View>
           <View style={{ ...styles.tableCell, ...{ flex: 1 } }}>
             <Text style={{ fontFamily: 'OpenSans-Regular' }}>
-              {\`Año de fabricación: 2004\`}
+              {\`Año de fabricación: 2025\`}
             </Text>
           </View>
         </View>
