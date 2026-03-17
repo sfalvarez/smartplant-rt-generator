@@ -4,13 +4,24 @@ import { Document as PDFDocument, Page as PDFPage, Text, View, StyleSheet, pdf, 
 import { Document, Page, pdfjs } from 'react-pdf';
 import * as Babel from '@babel/standalone';
 import { templates } from './templates';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import openSansLight from './fonts/OpenSans/OpenSans-Light.ttf';
 import openSansRegular from './fonts/OpenSans/OpenSans-Regular.ttf';
 import openSansMedium from './fonts/OpenSans/OpenSans-Medium.ttf';
 import openSansSemiBold from './fonts/OpenSans/OpenSans-SemiBold.ttf';
 import openSansBold from './fonts/OpenSans/OpenSans-Bold.ttf';
 import openSansExtraBold from './fonts/OpenSans/OpenSans-ExtraBold.ttf';
-import './App.css';
 
 const GUI_TEMPLATE_NAME = 'quixoteGui';
 const REGULAR_TEXT_PATTERN = /<Text style=\{\{[^}]*fontFamily:\s*'OpenSans-Regular'[^}]*\}\}[^>]*>\s*\{`([\s\S]*?)`\}\s*<\/Text>/g;
@@ -18,6 +29,13 @@ const SEMIBOLD_TEXT_PATTERN = /<Text style=\{\{[^}]*fontFamily:\s*'OpenSans-Semi
 const BOLD_TEXT_PATTERN = /<Text style=\{\{[^}]*fontFamily:\s*'OpenSans-Bold'[^}]*\}\}[^>]*>\s*([\s\S]*?)\s*<\/Text>/g;
 const ARROW_TOKEN = '__GUI_ARROW_TOKEN__';
 const PDF_GENERATION_DEBOUNCE_MS = 450;
+const GUI_HIDDEN_LABEL_PATTERNS = [
+  /^revision no$/,
+  /^estado$/,
+  /^especialidad\(es\)$/,
+  /^valoracion ram$/,
+  /^fecha de elaboracion$/,
+];
 
 const cleanLabelText = (value) => (
   value
@@ -33,6 +51,81 @@ const cleanLabelText = (value) => (
 );
 
 const normalizeContextForLabelMatching = (value) => value.replace(/=>/g, ARROW_TOKEN);
+
+const removeDuplicateSuffix = (label) => label.replace(/\s+\d+$/, '');
+
+const normalizeLabel = (label) => (
+  removeDuplicateSuffix(label)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim()
+);
+
+const isHiddenGuiLabel = (label) => {
+  const normalized = normalizeLabel(label);
+  return GUI_HIDDEN_LABEL_PATTERNS.some((pattern) => pattern.test(normalized));
+};
+
+const findNthField = (fields, matcher, occurrence = 1) => {
+  let count = 0;
+  for (const field of fields) {
+    const normalized = normalizeLabel(field.label);
+    if (!matcher.test(normalized)) continue;
+    count += 1;
+    if (count === occurrence) {
+      return field;
+    }
+  }
+
+  return null;
+};
+
+const cleanGuiDisplayLabel = (label) => (
+  removeDuplicateSuffix(label)
+    .replace(/\(es\)/gi, '')
+    .replace(/\(s\)/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+);
+
+const buildGuiLayout = (fields) => {
+  const visibleFields = fields.filter((field) => !isHiddenGuiLabel(field.label));
+  const pick = (pattern, occurrence = 1) => findNthField(visibleFields, pattern, occurrence);
+
+  return {
+    topRows: [
+      { fields: [pick(/descripcion del alcance/)], columns: 1 },
+      { fields: [pick(/^unidad/), pick(/dirigido a/)], columns: 2 },
+      { fields: [pick(/tag.*equipos.*intervenir/), pick(/^servicio/)], columns: 2 },
+      { fields: [pick(/proceso de gestion de activos/), pick(/tipo de rt/)], columns: 2 },
+      { fields: [pick(/numero.*aviso.*sap/), pick(/fecha requerida de ejecucion/)], columns: 2 },
+    ],
+    antecedenteRows: [
+      { fields: [pick(/^diseno$/)], columns: 1 },
+      { fields: [pick(/^antecedentes$/)], columns: 1 },
+      { fields: [pick(/origen.*priorizacion/)], columns: 1 },
+    ],
+    diagnosticoField: pick(/^diagnostico 1$/),
+    actionOneRows: [
+      { fields: [pick(/titulo de la accion/, 1)], columns: 1 },
+      { fields: [pick(/componente a intervenir/, 1), pick(/^especialidad$/, 1)], columns: 2 },
+      { fields: [pick(/detalle de la accion/, 1)], columns: 1 },
+      { fields: [pick(/listado de materiales/, 1)], columns: 1 },
+      { fields: [pick(/controles de calidad/, 1)], columns: 1 },
+    ],
+    actionTwoRows: [
+      { fields: [pick(/titulo de la accion/, 2)], columns: 1 },
+      { fields: [pick(/componente a intervenir/, 2), pick(/^especialidad$/, 2)], columns: 2 },
+      { fields: [pick(/detalle de la accion/, 2)], columns: 1 },
+      { fields: [pick(/listado de materiales/, 2)], columns: 1 },
+      { fields: [pick(/controles de calidad/, 2)], columns: 1 },
+    ],
+    controlCalidadField: pick(/control de calidad requerido/),
+    elaboroField: pick(/^elaboro$/),
+  };
+};
 
 const getLastLabelFromContext = (context, pattern) => {
   let label = '';
@@ -573,6 +666,60 @@ function App() {
     setZoom(1.0);
   };
 
+  const guiLayout = buildGuiLayout(guiFields);
+
+  const renderGuiInput = (field) => {
+    if (!field) return null;
+
+    const labelText = cleanGuiDisplayLabel(field.label);
+    const useTextarea = field.multiline || field.value.length > 90;
+
+    return (
+      <label key={field.id} className="flex flex-col">
+        <span className="border-b border-slate-700 bg-slate-800 px-2 py-1 text-xs font-semibold text-slate-200">
+          {labelText}
+        </span>
+        {useTextarea ? (
+          <Textarea
+            className="gui-field-textarea min-h-[90px] w-full resize-none bg-white px-2 py-2 text-sm text-slate-900 outline-none ring-inset focus:ring-1 focus:ring-sky-500"
+            rows={1}
+            value={field.value}
+            onInput={(e) => resizeTextareaToContent(e.target)}
+            onChange={(e) => handleGuiFieldChange(field.id, e.target.value)}
+          />
+        ) : (
+          <Input
+            className="w-full bg-white px-2 py-2 text-sm text-slate-900 outline-none ring-inset focus:ring-1 focus:ring-sky-500"
+            type="text"
+            value={field.value}
+            onChange={(e) => handleGuiFieldChange(field.id, e.target.value)}
+          />
+        )}
+      </label>
+    );
+  };
+
+  const renderGuiRows = (rows) => rows
+    .filter((row) => row.fields.some(Boolean))
+    .map((row, rowIndex) => (
+      <div
+        key={`gui-row-${rowIndex}`}
+        className={`grid border border-slate-700 border-b-0 bg-slate-900 ${row.columns === 2 ? 'grid-cols-1 xl:grid-cols-2' : 'grid-cols-1'}`}
+      >
+        {row.fields.map((field, index) => {
+          const isLastCell = index === row.fields.length - 1;
+          return (
+            <div
+              key={`${field?.id || `empty-${index}`}`}
+              className={`min-w-0 border-slate-700 ${isLastCell ? '' : 'xl:border-r'} ${isLastCell ? '' : 'border-b xl:border-b-0'}`}
+            >
+              {field ? renderGuiInput(field) : null}
+            </div>
+          );
+        })}
+      </div>
+    ));
+
   // Calculate PDF width based on container size
   const calculatePDFWidth = () => {
     const containerWidth = window.innerWidth * 0.45; // 45% of window width
@@ -584,78 +731,96 @@ function App() {
   };
 
   return (
-    <div className="app">
-      <header className="app-header">
-        <h1>React-PDF Playground</h1>
-        <div className="header-buttons">
-          <select
-            value={selectedTemplate}
-            onChange={(e) => handleTemplateChange(e.target.value)}
-            className="template-selector"
-          >
-            <option value="quixote">Don Quixote</option>
-            <option value="quixoteGui">Don Quixote (GUI Mode)</option>
-            <option value="simple">Simple Document</option>
-            <option value="resume">Resume</option>
-            <option value="invoice">Invoice</option>
-            <option value="multipage">Multi-page Example</option>
-          </select>
-          <button className="btn btn-primary" onClick={handleRunCode}>
+    <div className="flex h-dvh flex-col overflow-hidden bg-slate-950 text-slate-100">
+      <header className="flex items-center justify-between border-b border-slate-800 bg-slate-900 px-6 py-4 shadow-sm">
+        <h1 className="text-xl font-semibold">React-PDF Playground</h1>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <Select value={selectedTemplate} onValueChange={handleTemplateChange}>
+            <SelectTrigger className="w-[260px]">
+              <SelectValue placeholder="Choose template" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="quixote">Don Quixote</SelectItem>
+              <SelectItem value="quixoteGui">Don Quixote (GUI Mode)</SelectItem>
+              <SelectItem value="simple">Simple Document</SelectItem>
+              <SelectItem value="resume">Resume</SelectItem>
+              <SelectItem value="invoice">Invoice</SelectItem>
+              <SelectItem value="multipage">Multi-page Example</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button onClick={handleRunCode}>
             Run Code
-          </button>
-          <button className="btn btn-primary" onClick={handleSaveCode}>
+          </Button>
+          <Button onClick={handleSaveCode}>
             Save
-          </button>
-          <button className="btn btn-secondary" onClick={handleClearCode}>
+          </Button>
+          <Button variant="secondary" onClick={handleClearCode}>
             Reset
-          </button>
-          {saveMessage && <span className="language-tag">{saveMessage}</span>}
+          </Button>
+          {saveMessage && <Badge>{saveMessage}</Badge>}
         </div>
       </header>
 
-      <div className="main-content">
-        <div className="editor-panel">
-          <div className="panel-header">
-            <h2>Code Editor</h2>
-            <div className="panel-actions">
-              <button
-                className={`btn ${isGuiMode ? 'btn-primary' : 'btn-secondary'}`}
+      <div className="flex min-h-0 flex-1 flex-col md:flex-row">
+        <Card className="m-2 flex min-h-0 w-full flex-col overflow-hidden border-slate-800 md:w-1/2">
+          <div className="flex min-h-[50px] items-center justify-between border-b border-slate-800 bg-slate-900 px-4 py-2">
+            <h2 className="text-sm font-medium text-slate-300">Code Editor</h2>
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <Button
+                variant={isGuiMode ? 'default' : 'secondary'}
                 onClick={handleGuiModeToggle}
                 disabled={!isGuiTemplate}
                 title={isGuiTemplate ? 'Toggle GUI mode' : 'GUI mode is only available for Don Quixote (GUI Mode)'}
               >
                 GUI mode
-              </button>
-              <span className="language-tag">JavaScript</span>
+              </Button>
+              <Badge>JavaScript</Badge>
             </div>
           </div>
-          <div className="editor-container">
+          <div className="editor-container relative flex-1 overflow-auto bg-slate-950">
             {isGuiMode && isGuiTemplate ? (
-              <div className="gui-mode-container">
-                <div className="gui-mode-note">
-                  Edit OpenSans-Regular values for this template.
+              <div className="h-full overflow-y-auto bg-gradient-to-b from-slate-900 to-slate-950 p-4">
+                <div className="mb-3 text-sm text-slate-400">
+                  Editable fields arranged as RT sections.
                 </div>
-                {guiFields.map((field) => (
-                  <label key={field.id} className="gui-field">
-                    <span className="gui-field-label">{field.label}</span>
-                    {field.multiline ? (
-                      <textarea
-                        className="gui-field-input gui-field-textarea"
-                        rows={1}
-                        value={field.value}
-                        onInput={(e) => resizeTextareaToContent(e.target)}
-                        onChange={(e) => handleGuiFieldChange(field.id, e.target.value)}
-                      />
-                    ) : (
-                      <input
-                        className="gui-field-input"
-                        type="text"
-                        value={field.value}
-                        onChange={(e) => handleGuiFieldChange(field.id, e.target.value)}
-                      />
-                    )}
-                  </label>
-                ))}
+                <div>
+                  {renderGuiRows(guiLayout.topRows)}
+
+                  <h3 className="mt-4 border-b border-slate-700 pb-1 text-sm font-semibold uppercase tracking-wide text-slate-300">ANTECEDENTE</h3>
+                  {renderGuiRows(guiLayout.antecedenteRows)}
+
+                  <h3 className="mt-4 border-b border-slate-700 pb-1 text-sm font-semibold uppercase tracking-wide text-slate-300">DIAGNOSTICO 1</h3>
+                  {guiLayout.diagnosticoField && (
+                    <div className="grid grid-cols-1 border border-slate-700 border-b-0 bg-slate-900">
+                      <div className="min-w-0">
+                        {renderGuiInput(guiLayout.diagnosticoField)}
+                      </div>
+                    </div>
+                  )}
+
+                  <h3 className="mt-4 border-b border-slate-700 pb-1 text-sm font-semibold uppercase tracking-wide text-slate-300">ACCION RECOMENDADA 1</h3>
+                  {renderGuiRows(guiLayout.actionOneRows)}
+
+                  <h3 className="mt-4 border-b border-slate-700 pb-1 text-sm font-semibold uppercase tracking-wide text-slate-300">ACCION RECOMENDADA 2</h3>
+                  {renderGuiRows(guiLayout.actionTwoRows)}
+
+                  <h3 className="mt-4 border-b border-slate-700 pb-1 text-sm font-semibold uppercase tracking-wide text-slate-300">CONTROL DE CALIDAD REQUERIDO</h3>
+                  {guiLayout.controlCalidadField && (
+                    <div className="grid grid-cols-1 border border-slate-700 border-b-0 bg-slate-900">
+                      <div className="min-w-0">
+                        {renderGuiInput(guiLayout.controlCalidadField)}
+                      </div>
+                    </div>
+                  )}
+
+                  {guiLayout.elaboroField && (
+                    <div className="grid grid-cols-1 border border-slate-700 border-b-0 bg-slate-900">
+                      <div className="min-w-0">
+                        {renderGuiInput(guiLayout.elaboroField)}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             ) : (
               <MonacoEditor
@@ -680,44 +845,41 @@ function App() {
               />
             )}
           </div>
-        </div>          <div className="preview-panel">
-          <div className="panel-header">
-            <h2>PDF Preview</h2>
-            <div className="panel-actions">
-              {error && <div className="error-message">Error: {error}</div>}
+        </Card>
+        <Card className="m-2 flex min-h-0 w-full flex-col overflow-hidden border-slate-800 md:w-1/2">
+          <div className="flex min-h-[50px] items-center justify-between border-b border-slate-800 bg-slate-900 px-4 py-2">
+            <h2 className="text-sm font-medium text-slate-300">PDF Preview</h2>
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              {error && <Badge variant="destructive" className="max-w-[220px] truncate">Error: {error}</Badge>}
               {!error && documentComponent && (
-                <div className="success-message">
+                <div className="flex items-center gap-2 rounded bg-emerald-600 px-2 py-1 text-xs font-medium text-white">
                   <span>✓ PDF Generated</span>
-                  <button
-                    className="btn btn-download"
-                    onClick={handleDownload}
-                    disabled={!pdfBlob}
-                  >
+                  <Button size="sm" variant="outline" className="border-emerald-300 bg-emerald-500 text-white hover:bg-emerald-400" onClick={handleDownload} disabled={!pdfBlob}>
                     Download PDF
-                  </button>
+                  </Button>
                 </div>
               )}
               {pdfBlob && !error && (
-                <div className="pdf-controls">
-                  <div className="zoom-controls">
-                    <button className="btn btn-zoom" onClick={handleZoomOut} disabled={zoom <= 0.4}>
+                <div className="ml-2 flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <Button size="sm" onClick={handleZoomOut} disabled={zoom <= 0.4}>
                       −
-                    </button>
-                    <span className="zoom-level">{Math.round(zoom * 100)}%</span>
-                    <button className="btn btn-zoom" onClick={handleZoomIn} disabled={zoom >= 3.0}>
+                    </Button>
+                    <span className="min-w-10 text-center text-xs text-slate-300">{Math.round(zoom * 100)}%</span>
+                    <Button size="sm" onClick={handleZoomIn} disabled={zoom >= 3.0}>
                       +
-                    </button>
-                    <button className="btn btn-zoom" onClick={handleZoomFit}>
+                    </Button>
+                    <Button size="sm" onClick={handleZoomFit}>
                       Fit
-                    </button>
+                    </Button>
                   </div>
                 </div>
               )}
             </div>
           </div>
-          <div className="preview-container" ref={previewContainerRef}>
+          <div className="relative flex-1 overflow-auto bg-slate-100" ref={previewContainerRef}>
             {pdfBlob ? (
-              <div className="pdf-viewer-container" ref={pdfViewerContainerRef}>
+              <div className="flex h-full items-start justify-center overflow-auto bg-slate-200 p-4" ref={pdfViewerContainerRef}>
                 <Document
                   file={pdfBlob}
                   onLoadSuccess={({ numPages }) => {
@@ -734,9 +896,9 @@ function App() {
                   }}
                   loading={null}
                   error={
-                    <div className="error-display">
-                      <h3>Failed to load PDF</h3>
-                      <p>There was an error loading the PDF document.</p>
+                    <div className="m-4 max-w-[500px] rounded-lg border border-red-300 bg-red-50 p-6 text-center md:m-2">
+                      <h3 className="mb-4 text-xl text-red-700">Failed to load PDF</h3>
+                      <p className="mt-2 text-slate-600">There was an error loading the PDF document.</p>
                     </div>
                   }
                 >
@@ -755,29 +917,34 @@ function App() {
                       width={calculatePDFWidth()}
                       renderTextLayer={false}
                       renderAnnotationLayer={false}
-                      className="pdf-page"
+                      style={{
+                        marginBottom: '1rem',
+                        boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
+                        borderRadius: '4px',
+                        backgroundColor: 'transparent',
+                      }}
                     />
                   ))}
                 </Document>
               </div>
             ) : (
-              <div className="preview-placeholder">
+              <div className="flex h-full w-full flex-col items-center justify-center bg-slate-100 p-8 text-slate-600">
                 {error ? (
-                  <div className="error-display">
-                    <h3>Error in code:</h3>
-                    <pre>{error}</pre>
-                    <p>Please check your code and try again.</p>
+                  <div className="m-4 max-w-[500px] rounded-lg border border-red-300 bg-red-50 p-6 text-center md:m-2">
+                    <h3 className="mb-4 text-xl text-red-700">Error in code:</h3>
+                    <pre className="my-4 overflow-x-auto whitespace-pre-wrap rounded bg-red-500 p-4 text-left text-sm text-white">{error}</pre>
+                    <p className="mt-2 text-slate-600">Please check your code and try again.</p>
                   </div>
                 ) : (
-                  <div className="loading">
-                    <div className="loading-spinner"></div>
+                  <div className="flex flex-col items-center gap-4 text-lg text-slate-600">
+                    <div className="h-10 w-10 animate-spin rounded-full border-4 border-slate-300 border-t-sky-600"></div>
                     <p>Generating PDF...</p>
                   </div>
                 )}
               </div>
             )}
           </div>
-        </div>
+        </Card>
       </div>
     </div>
   );

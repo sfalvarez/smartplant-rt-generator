@@ -125,6 +125,7 @@ export default defineConfig({
   resolve: {
     alias: {
       buffer: 'buffer',
+      '@': resolve(__dirname, 'src'),
     },
   },
   optimizeDeps: {
