@@ -1292,7 +1292,7 @@ function App() {
 
   return (
 
-    <SidebarProvider>
+    <SidebarProvider defaultOpen={false}>
       <AppSidebar />
       <SidebarInset>
         <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
@@ -1345,25 +1345,23 @@ function App() {
                   <Button variant="secondary" onClick={handleClearCode}>
                     Reset
                   </Button>
+                  <Button
+                    variant={isGuiMode ? 'default' : 'secondary'}
+                    onClick={handleGuiModeToggle}
+                    disabled={!isGuiTemplate}
+                    title={isGuiTemplate ? 'Toggle GUI mode' : 'GUI mode is only available for Plantilla RT'}
+                  >
+                    GUI mode
+                  </Button>
+                  <Badge>JavaScript</Badge>
                   {saveMessage && <Badge>{saveMessage}</Badge>}
                 </div>
               </header>
 
               <div className="flex min-h-0 flex-1 flex-row md:flex-row">
                 <Card className="m-2 flex min-h-0 w-full flex-col overflow-hidden border-slate-800 md:w-1/2">
-                  <div className="flex min-h-[50px] items-center justify-between border-b border-slate-800 bg-slate-900 px-4 py-2">
+                  <div className="flex min-h-[50px] items-center border-b border-slate-800 bg-slate-900 px-4 py-2">
                     <h2 className="text-sm font-medium text-slate-300">Code Editor</h2>
-                    <div className="flex flex-wrap items-center justify-end gap-2">
-                      <Button
-                        variant={isGuiMode ? 'default' : 'secondary'}
-                        onClick={handleGuiModeToggle}
-                        disabled={!isGuiTemplate}
-                        title={isGuiTemplate ? 'Toggle GUI mode' : 'GUI mode is only available for Plantilla RT'}
-                      >
-                        GUI mode
-                      </Button>
-                      <Badge>JavaScript</Badge>
-                    </div>
                   </div>
                   <div className="editor-container relative flex-1 overflow-auto bg-slate-950">
                     {isGuiMode && isGuiTemplate ? (
