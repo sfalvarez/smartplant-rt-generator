@@ -58,7 +58,7 @@ const GUI_IMAGE_ENABLED_LABEL_PATTERNS = [
   /^diseno$/,
   /^antecedentes$/,
   /origen.*valoracion.*priorizacion.*tarea.*mantenimiento/,
-  /^diagnostico 1$/,
+  /^diagnostico(?:\s+\d+)?$/,
   /detalle de la accion/,
   /listado de materiales.*repuestos/,
   /controles? de calidad.*estandar de evaluacion/,
@@ -562,11 +562,13 @@ const transformRichContentFieldsForPdf = (codeString) => {
     const semiBoldPatternForward = new RegExp(SEMIBOLD_TEXT_PATTERN.source, 'g');
     const boldPatternForward = new RegExp(BOLD_TEXT_PATTERN.source, 'g');
 
-    const label = (
-      getLastLabelFromContext(contextBefore, semiBoldPattern) ||
-      getLastLabelFromContext(contextBefore, boldPattern) ||
-      getFirstLabelFromContext(contextAfter, semiBoldPatternForward) ||
-      getFirstLabelFromContext(contextAfter, boldPatternForward)
+    const label = getClosestLabelFromContext(
+      contextBefore,
+      contextAfter,
+      semiBoldPattern,
+      boldPattern,
+      semiBoldPatternForward,
+      boldPatternForward
     );
 
     if (!label || !isImageEnabledGuiLabel(label)) {
@@ -628,7 +630,7 @@ const buildGuiLayout = (fields) => {
       { fields: [pick(/^antecedentes$/)], columns: 1 },
       { fields: [pick(/origen.*priorizacion/)], columns: 1 },
     ],
-    diagnosticoField: pick(/^diagnostico 1$/),
+    diagnosticoField: pick(/^diagnostico(?:\s+\d+)?$/) || pick(/\bdiagnostico\b/),
     actionOneRows: [
       { fields: [pick(/titulo de la accion/, 1)], columns: 1 },
       { fields: [pick(/componente a intervenir/, 1), pick(/^especialidad$/, 1)], columns: 2 },
@@ -648,28 +650,54 @@ const buildGuiLayout = (fields) => {
   };
 };
 
-const getLastLabelFromContext = (context, pattern) => {
-  let label = '';
+const getLastLabelMetaFromContext = (context, pattern) => {
+  let lastMeta = null;
   let match = pattern.exec(context);
 
   while (match) {
     const candidate = cleanLabelText(match[1] || '');
     if (candidate) {
-      label = candidate;
+      lastMeta = { label: candidate, index: match.index };
     }
     match = pattern.exec(context);
   }
 
-  return label;
+  return lastMeta;
 };
 
-const getFirstLabelFromContext = (context, pattern) => {
+const getFirstLabelMetaFromContext = (context, pattern) => {
   const match = pattern.exec(context);
   if (!match) {
-    return '';
+    return null;
   }
 
-  return cleanLabelText(match[1] || '');
+  const candidate = cleanLabelText(match[1] || '');
+  if (!candidate) {
+    return null;
+  }
+
+  return { label: candidate, index: match.index };
+};
+
+const getClosestLabelFromContext = (contextBefore, contextAfter, semiBoldPattern, boldPattern, semiBoldPatternForward, boldPatternForward) => {
+  const lastSemiBold = getLastLabelMetaFromContext(contextBefore, semiBoldPattern);
+  const lastBold = getLastLabelMetaFromContext(contextBefore, boldPattern);
+  const firstSemiBold = getFirstLabelMetaFromContext(contextAfter, semiBoldPatternForward);
+  const firstBold = getFirstLabelMetaFromContext(contextAfter, boldPatternForward);
+
+  const backwardCandidate = [lastSemiBold, lastBold]
+    .filter(Boolean)
+    .sort((a, b) => b.index - a.index)[0];
+
+  if (backwardCandidate?.label) {
+    return backwardCandidate.label;
+  }
+
+  const forwardCandidate = [firstSemiBold, firstBold]
+    .filter(Boolean)
+    .sort((a, b) => a.index - b.index)[0];
+
+  return forwardCandidate?.label || '';
 };
 
 const extractGuiFieldsFromCode = (codeString) => {
@@ -690,13 +718,14 @@ const extractGuiFieldsFromCode = (codeString) => {
     const semiBoldPatternForward = new RegExp(SEMIBOLD_TEXT_PATTERN.source, 'g');
     const boldPatternForward = new RegExp(BOLD_TEXT_PATTERN.source, 'g');
 
-    const label = (
-      getLastLabelFromContext(contextBefore, semiBoldPattern) ||
-      getLastLabelFromContext(contextBefore, boldPattern) ||
-      getFirstLabelFromContext(contextAfter, semiBoldPatternForward) ||
-      getFirstLabelFromContext(contextAfter, boldPatternForward) ||
-      `Field ${fields.length + 1}`
-    );
+    const label = getClosestLabelFromContext(
+      contextBefore,
+      contextAfter,
+      semiBoldPattern,
+      boldPattern,
+      semiBoldPatternForward,
+      boldPatternForward
+    ) || `Field ${fields.length + 1}`;
 
     fields.push({
       id: `gui-field-${fields.length}`,
@@ -1291,221 +1320,221 @@ function App() {
         <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
           <div className="min-h-[100vh] flex-1 rounded-xl bg-muted/50 md:min-h-min">
             <div className="flex h-dvh flex-col overflow-hidden bg-slate-950 text-slate-100">
-      <header className="flex items-center justify-between border-b border-slate-800 bg-slate-900 px-6 py-4 shadow-xs">
-        <h1 className="text-xl font-semibold">React-PDF Playground</h1>
-        <div className="flex flex-wrap items-center justify-end gap-2">
-          <Select value={selectedTemplate} onValueChange={handleTemplateChange}>
-            <SelectTrigger className="w-[260px]">
-              <SelectValue placeholder="Choose template" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="quixote">Don Quixote</SelectItem>
-              <SelectItem value="quixoteGui">Don Quixote (GUI Mode)</SelectItem>
-              <SelectItem value="simple">Simple Document</SelectItem>
-              <SelectItem value="resume">Resume</SelectItem>
-              <SelectItem value="invoice">Invoice</SelectItem>
-              <SelectItem value="multipage">Multi-page Example</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button onClick={handleRunCode}>
-            Run Code
-          </Button>
-          <Button onClick={handleSaveCode}>
-            Save
-          </Button>
-          <Button variant="secondary" onClick={handleClearCode}>
-            Reset
-          </Button>
-          {saveMessage && <Badge>{saveMessage}</Badge>}
-        </div>
-      </header>
-
-      <div className="flex min-h-0 flex-1 flex-col md:flex-row">
-        <Card className="m-2 flex min-h-0 w-full flex-col overflow-hidden border-slate-800 md:w-1/2">
-          <div className="flex min-h-[50px] items-center justify-between border-b border-slate-800 bg-slate-900 px-4 py-2">
-            <h2 className="text-sm font-medium text-slate-300">Code Editor</h2>
-            <div className="flex flex-wrap items-center justify-end gap-2">
-              <Button
-                variant={isGuiMode ? 'default' : 'secondary'}
-                onClick={handleGuiModeToggle}
-                disabled={!isGuiTemplate}
-                title={isGuiTemplate ? 'Toggle GUI mode' : 'GUI mode is only available for Don Quixote (GUI Mode)'}
-              >
-                GUI mode
-              </Button>
-              <Badge>JavaScript</Badge>
-            </div>
-          </div>
-          <div className="editor-container relative flex-1 overflow-auto bg-slate-950">
-            {isGuiMode && isGuiTemplate ? (
-              <div className="h-full overflow-y-auto bg-gradient-to-b from-slate-900 to-slate-950 p-4">
-                <div className="mb-3 text-sm text-slate-400">
-                  Editable fields arranged as RT sections.
-                </div>
-                <div>
-                  {renderGuiRows(guiLayout.topRows)}
-
-                  <h3 className="mt-4 border-b border-slate-700 pb-1 text-sm font-semibold uppercase tracking-wide text-slate-300">ANTECEDENTE</h3>
-                  {renderGuiRows(guiLayout.antecedenteRows)}
-
-                  <h3 className="mt-4 border-b border-slate-700 pb-1 text-sm font-semibold uppercase tracking-wide text-slate-300">DIAGNOSTICO 1</h3>
-                  {guiLayout.diagnosticoField && (
-                    <div className="grid grid-cols-1 border border-slate-700 border-b-0 bg-slate-900">
-                      <div className="min-w-0">
-                        {renderGuiInput(guiLayout.diagnosticoField)}
-                      </div>
-                    </div>
-                  )}
-
-                  <h3 className="mt-4 border-b border-slate-700 pb-1 text-sm font-semibold uppercase tracking-wide text-slate-300">ACCION RECOMENDADA 1</h3>
-                  {renderGuiRows(guiLayout.actionOneRows)}
-
-                  <h3 className="mt-4 border-b border-slate-700 pb-1 text-sm font-semibold uppercase tracking-wide text-slate-300">ACCION RECOMENDADA 2</h3>
-                  {renderGuiRows(guiLayout.actionTwoRows)}
-
-                  <h3 className="mt-4 border-b border-slate-700 pb-1 text-sm font-semibold uppercase tracking-wide text-slate-300">CONTROL DE CALIDAD REQUERIDO</h3>
-                  {guiLayout.controlCalidadField && (
-                    <div className="grid grid-cols-1 border border-slate-700 border-b-0 bg-slate-900">
-                      <div className="min-w-0">
-                        {renderGuiInput(guiLayout.controlCalidadField)}
-                      </div>
-                    </div>
-                  )}
-
-                  {guiLayout.elaboroField && (
-                    <div className="grid grid-cols-1 border border-slate-700 border-b-0 bg-slate-900">
-                      <div className="min-w-0">
-                        {renderGuiInput(guiLayout.elaboroField)}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <MonacoEditor
-                height="100%"
-                defaultLanguage="javascript"
-                value={code}
-                onChange={handleEditorChange}
-                theme="vs-dark"
-                options={{
-                  fontSize: 14,
-                  minimap: { enabled: false },
-                  wordWrap: 'on',
-                  lineNumbers: 'on',
-                  scrollBeyondLastLine: false,
-                  automaticLayout: true,
-                  tabSize: 2,
-                  insertSpaces: true,
-                  folding: true,
-                  lineDecorationsWidth: 10,
-                  lineNumbersMinChars: 3,
-                }}
-              />
-            )}
-          </div>
-        </Card>
-        <Card className="m-2 flex min-h-0 w-full flex-col overflow-hidden border-slate-800 md:w-1/2">
-          <div className="flex min-h-[50px] items-center justify-between border-b border-slate-800 bg-slate-900 px-4 py-2">
-            <h2 className="text-sm font-medium text-slate-300">PDF Preview</h2>
-            <div className="flex flex-wrap items-center justify-end gap-2">
-              {error && <Badge variant="destructive" className="max-w-[220px] truncate">Error: {error}</Badge>}
-              {!error && documentComponent && (
-                <div className="flex items-center gap-2 rounded bg-emerald-600 px-2 py-1 text-xs font-medium text-white">
-                  <span>✓ PDF Generated</span>
-                  <Button size="sm" variant="outline" className="border-emerald-300 bg-emerald-500 text-white hover:bg-emerald-400" onClick={handleDownload} disabled={!pdfBlob}>
-                    Download PDF
+              <header className="flex items-center justify-between border-b border-slate-800 bg-slate-900 px-6 py-1 shadow-xs">
+                <h1 className="text-l font-semibold">Smart RT</h1>
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                  <Select value={selectedTemplate} onValueChange={handleTemplateChange}>
+                    <SelectTrigger className="w-[260px]">
+                      <SelectValue placeholder="Choose template" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="quixote">Don Quixote</SelectItem>
+                      <SelectItem value="quixoteGui">Plantilla RT</SelectItem>
+                      <SelectItem value="simple">Simple Document</SelectItem>
+                      <SelectItem value="resume">Resume</SelectItem>
+                      <SelectItem value="invoice">Invoice</SelectItem>
+                      <SelectItem value="multipage">Multi-page Example</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button onClick={handleRunCode}>
+                    Run Code
                   </Button>
+                  <Button onClick={handleSaveCode}>
+                    Save
+                  </Button>
+                  <Button variant="secondary" onClick={handleClearCode}>
+                    Reset
+                  </Button>
+                  {saveMessage && <Badge>{saveMessage}</Badge>}
                 </div>
-              )}
-              {pdfBlob && !error && (
-                <div className="ml-2 flex items-center gap-4">
-                  <div className="flex items-center gap-2">
-                    <Button size="sm" onClick={handleZoomOut} disabled={zoom <= 0.4}>
-                      −
-                    </Button>
-                    <span className="min-w-10 text-center text-xs text-slate-300">{Math.round(zoom * 100)}%</span>
-                    <Button size="sm" onClick={handleZoomIn} disabled={zoom >= 3.0}>
-                      +
-                    </Button>
-                    <Button size="sm" onClick={handleZoomFit}>
-                      Fit
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-          <div className="relative flex-1 overflow-auto bg-slate-100" ref={previewContainerRef}>
-            {pdfBlob ? (
-              <div className="flex h-full items-start justify-center overflow-auto bg-slate-200 p-4" ref={pdfViewerContainerRef}>
-                <Document
-                  file={pdfBlob}
-                  onLoadSuccess={({ numPages }) => {
-                    console.log('PDF loaded successfully, pages:', numPages);
-                    pageElementsRef.current.clear();
-                    renderedPagesRef.current.clear();
-                    expectedPageCountRef.current = numPages;
-                    setNumPages(numPages);
-                    setError(null); // Clear any previous errors
-                  }}
-                  onLoadError={(error) => {
-                    console.error('PDF load error:', error);
-                    setError('Failed to load PDF: ' + error.message);
-                  }}
-                  loading={null}
-                  error={
-                    <div className="m-4 max-w-[500px] rounded-lg border border-red-300 bg-red-50 p-6 text-center md:m-2">
-                      <h3 className="mb-4 text-xl text-red-700">Failed to load PDF</h3>
-                      <p className="mt-2 text-slate-600">There was an error loading the PDF document.</p>
+              </header>
+
+              <div className="flex min-h-0 flex-1 flex-row md:flex-row">
+                <Card className="m-2 flex min-h-0 w-full flex-col overflow-hidden border-slate-800 md:w-1/2">
+                  <div className="flex min-h-[50px] items-center justify-between border-b border-slate-800 bg-slate-900 px-4 py-2">
+                    <h2 className="text-sm font-medium text-slate-300">Code Editor</h2>
+                    <div className="flex flex-wrap items-center justify-end gap-2">
+                      <Button
+                        variant={isGuiMode ? 'default' : 'secondary'}
+                        onClick={handleGuiModeToggle}
+                        disabled={!isGuiTemplate}
+                        title={isGuiTemplate ? 'Toggle GUI mode' : 'GUI mode is only available for Plantilla RT'}
+                      >
+                        GUI mode
+                      </Button>
+                      <Badge>JavaScript</Badge>
                     </div>
-                  }
-                >
-                  {Array.from(new Array(numPages || 0), (_, index) => (
-                    <Page
-                      key={`page_${index + 1}`}
-                      className="pdf-preview-page"
-                      pageNumber={index + 1}
-                      inputRef={(node) => {
-                        if (node) {
-                          pageElementsRef.current.set(index + 1, node);
-                        } else {
-                          pageElementsRef.current.delete(index + 1);
-                        }
-                      }}
-                      onRenderSuccess={() => handlePageRenderSuccess(index + 1)}
-                      width={calculatePDFWidth()}
-                      renderTextLayer={false}
-                      renderAnnotationLayer={false}
-                      style={{
-                        boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
-                        borderRadius: '4px',
-                        backgroundColor: 'transparent',
-                      }}
-                    />
-                  ))}
-                </Document>
-              </div>
-            ) : (
-              <div className="flex h-full w-full flex-col items-center justify-center bg-slate-100 p-8 text-slate-600">
-                {error ? (
-                  <div className="m-4 max-w-[500px] rounded-lg border border-red-300 bg-red-50 p-6 text-center md:m-2">
-                    <h3 className="mb-4 text-xl text-red-700">Error in code:</h3>
-                    <pre className="my-4 overflow-x-auto whitespace-pre-wrap rounded bg-red-500 p-4 text-left text-sm text-white">{error}</pre>
-                    <p className="mt-2 text-slate-600">Please check your code and try again.</p>
                   </div>
-                ) : (
-                  <div className="flex flex-col items-center gap-4 text-lg text-slate-600">
-                    <div className="h-10 w-10 animate-spin rounded-full border-4 border-slate-300 border-t-sky-600"></div>
-                    <p>Generating PDF...</p>
+                  <div className="editor-container relative flex-1 overflow-auto bg-slate-950">
+                    {isGuiMode && isGuiTemplate ? (
+                      <div className="h-full overflow-y-auto bg-gradient-to-b from-slate-900 to-slate-950 p-4">
+                        <div className="mb-3 text-sm text-slate-400">
+                          Editable fields arranged as RT sections.
+                        </div>
+                        <div>
+                          {renderGuiRows(guiLayout.topRows)}
+
+                          <h3 className="mt-4 border-b border-slate-700 pb-1 text-sm font-semibold uppercase tracking-wide text-slate-300">ANTECEDENTE</h3>
+                          {renderGuiRows(guiLayout.antecedenteRows)}
+
+                          <h3 className="mt-4 border-b border-slate-700 pb-1 text-sm font-semibold uppercase tracking-wide text-slate-300">DIAGNOSTICO 1</h3>
+                          {guiLayout.diagnosticoField && (
+                            <div className="grid grid-cols-1 border border-slate-700 border-b-0 bg-slate-900">
+                              <div className="min-w-0">
+                                {renderGuiInput(guiLayout.diagnosticoField)}
+                              </div>
+                            </div>
+                          )}
+
+                          <h3 className="mt-4 border-b border-slate-700 pb-1 text-sm font-semibold uppercase tracking-wide text-slate-300">ACCION RECOMENDADA 1</h3>
+                          {renderGuiRows(guiLayout.actionOneRows)}
+
+                          <h3 className="mt-4 border-b border-slate-700 pb-1 text-sm font-semibold uppercase tracking-wide text-slate-300">ACCION RECOMENDADA 2</h3>
+                          {renderGuiRows(guiLayout.actionTwoRows)}
+
+                          <h3 className="mt-4 border-b border-slate-700 pb-1 text-sm font-semibold uppercase tracking-wide text-slate-300">CONTROL DE CALIDAD REQUERIDO</h3>
+                          {guiLayout.controlCalidadField && (
+                            <div className="grid grid-cols-1 border border-slate-700 border-b-0 bg-slate-900">
+                              <div className="min-w-0">
+                                {renderGuiInput(guiLayout.controlCalidadField)}
+                              </div>
+                            </div>
+                          )}
+
+                          {guiLayout.elaboroField && (
+                            <div className="grid grid-cols-1 border border-slate-700 border-b-0 bg-slate-900">
+                              <div className="min-w-0">
+                                {renderGuiInput(guiLayout.elaboroField)}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <MonacoEditor
+                        height="100%"
+                        defaultLanguage="javascript"
+                        value={code}
+                        onChange={handleEditorChange}
+                        theme="vs-dark"
+                        options={{
+                          fontSize: 14,
+                          minimap: { enabled: false },
+                          wordWrap: 'on',
+                          lineNumbers: 'on',
+                          scrollBeyondLastLine: false,
+                          automaticLayout: true,
+                          tabSize: 2,
+                          insertSpaces: true,
+                          folding: true,
+                          lineDecorationsWidth: 10,
+                          lineNumbersMinChars: 3,
+                        }}
+                      />
+                    )}
                   </div>
-                )}
+                </Card>
+                <Card className="flex min-h-0 w-full flex-col overflow-hidden border-slate-800 md:w-1/2">
+                  <div className="flex min-h-[50px] items-center justify-between border-b border-slate-800 bg-slate-900 px-1 py-1">
+                    <h2 className="text-sm font-medium text-slate-400">Preview</h2>
+                    <div className="flex flex-wrap items-center justify-end">
+                      {error && <Badge variant="destructive" className="max-w-[220px] truncate">Error: {error}</Badge>}
+                      {!error && documentComponent && (
+                        <div className="flex items-center gap-2 rounded bg-emerald-600 px-2 py-1 text-xs font-medium text-white">
+                          <span>✓ PDF Generated</span>
+                          <Button size="xs" variant="outline" className="border-emerald-300 bg-emerald-500 text-white hover:bg-emerald-400" onClick={handleDownload} disabled={!pdfBlob}>
+                            Download PDF
+                          </Button>
+                        </div>
+                      )}
+                      {pdfBlob && !error && (
+                        <div className="ml-2 flex items-center gap-1">
+                          <div className="flex items-center gap-1">
+                            <Button size="xs" onClick={handleZoomOut} disabled={zoom <= 0.4}>
+                              −
+                            </Button>
+                            <span className="min-w-6 text-center text-xs text-slate-300">{Math.round(zoom * 100)}%</span>
+                            <Button size="xs" onClick={handleZoomIn} disabled={zoom >= 3.0}>
+                              +
+                            </Button>
+                            <Button size="xs" onClick={handleZoomFit}>
+                              Fit
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="relative flex-1 overflow-auto bg-slate-100" ref={previewContainerRef}>
+                    {pdfBlob ? (
+                      <div className="flex h-full items-start justify-center overflow-auto bg-slate-200 p-4" ref={pdfViewerContainerRef}>
+                        <Document
+                          file={pdfBlob}
+                          onLoadSuccess={({ numPages }) => {
+                            console.log('PDF loaded successfully, pages:', numPages);
+                            pageElementsRef.current.clear();
+                            renderedPagesRef.current.clear();
+                            expectedPageCountRef.current = numPages;
+                            setNumPages(numPages);
+                            setError(null); // Clear any previous errors
+                          }}
+                          onLoadError={(error) => {
+                            console.error('PDF load error:', error);
+                            setError('Failed to load PDF: ' + error.message);
+                          }}
+                          loading={null}
+                          error={
+                            <div className="m-4 max-w-[500px] rounded-lg border border-red-300 bg-red-50 p-6 text-center md:m-2">
+                              <h3 className="mb-4 text-xl text-red-700">Failed to load PDF</h3>
+                              <p className="mt-2 text-slate-600">There was an error loading the PDF document.</p>
+                            </div>
+                          }
+                        >
+                          {Array.from(new Array(numPages || 0), (_, index) => (
+                            <Page
+                              key={`page_${index + 1}`}
+                              className="pdf-preview-page"
+                              pageNumber={index + 1}
+                              inputRef={(node) => {
+                                if (node) {
+                                  pageElementsRef.current.set(index + 1, node);
+                                } else {
+                                  pageElementsRef.current.delete(index + 1);
+                                }
+                              }}
+                              onRenderSuccess={() => handlePageRenderSuccess(index + 1)}
+                              width={calculatePDFWidth()}
+                              renderTextLayer={false}
+                              renderAnnotationLayer={false}
+                              style={{
+                                boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
+                                borderRadius: '4px',
+                                backgroundColor: 'transparent',
+                              }}
+                            />
+                          ))}
+                        </Document>
+                      </div>
+                    ) : (
+                      <div className="flex h-full w-full flex-col items-center justify-center bg-slate-100 p-8 text-slate-600">
+                        {error ? (
+                          <div className="m-4 max-w-[500px] rounded-lg border border-red-300 bg-red-50 p-6 text-center md:m-2">
+                            <h3 className="mb-4 text-xl text-red-700">Error in code:</h3>
+                            <pre className="my-4 overflow-x-auto whitespace-pre-wrap rounded bg-red-500 p-4 text-left text-sm text-white">{error}</pre>
+                            <p className="mt-2 text-slate-600">Please check your code and try again.</p>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col items-center gap-4 text-lg text-slate-600">
+                            <div className="h-10 w-10 animate-spin rounded-full border-4 border-slate-300 border-t-sky-600"></div>
+                            <p>Generating PDF...</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </Card>
               </div>
-            )}
-          </div>
-        </Card>
-      </div>
-    </div>
+            </div>
           </div>
         </div>
       </SidebarInset>
