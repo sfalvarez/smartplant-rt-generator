@@ -811,7 +811,7 @@ const Quixote = () => (
               </Text>
               {' '}
               <Text style={{ fontFamily: 'OpenSans-Regular' }}>
-                {\`Corrección de fugas de vapor por válvulas, tuberías, juntas soldadas y juntas bridadas\`}
+                {\`Instalación de caja externa de refuerzo con refractario en el ducto de entrada de la torre silenciadora SSI4201 donde se presentan puntos calientes\`}
               </Text>
             </Text>
           </View>
@@ -849,16 +849,7 @@ const Quixote = () => (
           </View>
           <View style={{ ...styles.tableCell, ...{ flex: 1 } }}>
             <Text style={{ fontFamily: 'OpenSans-Regular' }}>
-              {\`2019:
-Durante la inspección de la unidad en abril del año 2019, y luego de 17 años con agua en
-lado TI, se realiza inspección mediante corrientes inducidas a la mitad de la tubería del haz
-aproximadamente, encontrando la siguiente condición:
-El haz se encontró en mal estado. Durante la reparación: se realizó limpieza a los tubos
-interior y exteriormente. Mecanismos de daño: corrosión interna y externa. Como
-producto de la inspección realizada al haz, se encontró:
-a. Lado TI: picaduras pasantes.
-b. Lado TO: corrosión general leve.
-Se reentubó haz.\`}
+              {\`El proyecto de confiabilidad de UOP2, realizó instalacion de una nueva torre silenciadora en el sistema de flue gas cooler , con un rediseño total pasando de pared caliente a pared fria con refractario monolitico interno.\`}
             </Text>
           </View>
         </View>
@@ -875,7 +866,7 @@ mantenimiento\`}
           </View>
           <View style={{ ...styles.tableCell, ...{ flex: 1 } }}>
             <Text style={{ fontFamily: 'OpenSans-Regular' }}>
-              {\`Publicado\`}
+              {\`Eliminación de riesgo a la disponibilidad operacional y \`}
             </Text>
           </View>
         </View>

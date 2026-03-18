@@ -21,7 +21,7 @@ export function NavMain({
 }) {
   return (
     <SidebarGroup>
-      <SidebarGroupLabel>Platform</SidebarGroupLabel>
+      <SidebarGroupLabel>Módulos</SidebarGroupLabel>
       <SidebarMenu>
         {items.map((item) => {
           const hasChildren = Array.isArray(item.items) && item.items.length > 0
@@ -51,7 +51,7 @@ export function NavMain({
                     {item.icon && <item.icon />}
                     <span>{item.title}</span>
                     <ChevronRight
-                      className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                      className="ms-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                   </SidebarMenuButton>
                 </CollapsibleTrigger>
                 <CollapsibleContent>

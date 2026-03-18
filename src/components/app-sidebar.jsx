@@ -12,12 +12,17 @@ import {
   PieChart,
   Settings2,
   SquareTerminal,
+  Tags,
 } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
 import { NavProjects } from "@/components/nav-projects"
 import { NavUser } from "@/components/nav-user"
-import { TeamSwitcher } from "@/components/team-switcher"
+import {
+  SidebarMenu,
+  SidebarMenuItem,
+} from "@/components/ui/sidebar"
+import rtSmartLogo from "@/assets/logos/RTSmart-logo.svg"
 import {
   Sidebar,
   SidebarContent,
@@ -25,6 +30,10 @@ import {
   SidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar"
+
+const RTSmartLogo = ({ className }) => (
+  <img src={rtSmartLogo} alt="RT Smart" className={className} />
+)
 
 // This is sample data.
 const data = {
@@ -36,18 +45,8 @@ const data = {
   teams: [
     {
       name: "RT Smart",
-      logo: GalleryVerticalEnd,
+      logo: RTSmartLogo,
       plan: "Ecopetrol SA",
-    },
-    {
-      name: "Acme Corp.",
-      logo: AudioWaveform,
-      plan: "Startup",
-    },
-    {
-      name: "Evil Corp.",
-      logo: Command,
-      plan: "Free",
     },
   ],
   navMain: [
@@ -77,68 +76,49 @@ const data = {
       ],
     },
     {
-      title: "Models",
+      title: "Tags",
       url: "#",
-      icon: Bot,
+      icon: Tags,
       items: [
         {
-          title: "Genesis",
+          title: "Todos",
           url: "#",
         },
         {
-          title: "Explorer",
+          title: "Equipo Estático",
           url: "#",
         },
         {
-          title: "Quantum",
+          title: "Tubería",
           url: "#",
         },
+        {
+          title: "Infraestructura Civil",
+          url: "#",
+        },
+        {
+          title: "Equipo Eléctrico",
+          url: "#",
+        },
+        {
+          title: "Instrumentos y Control",
+          url: "#",
+        },
+        {
+          title: "Equipo Rotativo",
+          url: "#",
+        }
       ],
     },
     {
-      title: "Documentation",
-      url: "#",
-      icon: BookOpen,
-      items: [
-        {
-          title: "Introduction",
-          url: "#",
-        },
-        {
-          title: "Get Started",
-          url: "#",
-        },
-        {
-          title: "Tutorials",
-          url: "#",
-        },
-        {
-          title: "Changelog",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Settings",
+      title: "Configuración",
       url: "#",
       icon: Settings2,
       items: [
         {
-          title: "General",
+          title: "Permisos",
           url: "#",
-        },
-        {
-          title: "Team",
-          url: "#",
-        },
-        {
-          title: "Billing",
-          url: "#",
-        },
-        {
-          title: "Limits",
-          url: "#",
-        },
+        }
       ],
     },
   ],
@@ -167,7 +147,21 @@ export function AppSidebar({
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
-        <TeamSwitcher teams={data.teams} />
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <div
+              className="flex h-12 w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm transition-[width,height,padding,gap] duration-200 ease-linear group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:p-0!">
+              <div
+                className="flex aspect-square size-8 items-center justify-center rounded-lg bg-transparent text-sidebar-primary-foreground">
+                <RTSmartLogo className="size-8" />
+              </div>
+              <div className="grid flex-1 text-left text-sm leading-tight overflow-hidden transition-[max-width,opacity] duration-200 ease-linear group-data-[collapsible=icon]:max-w-0 group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:[transition-delay:200ms] group-data-[state=expanded]:[transition-delay:0ms]">
+                <span className="truncate font-medium">{"RT Smart"}</span>
+                <span className="truncate text-xs">{"Ecopetrol SA"}</span>
+              </div>
+            </div>
+          </SidebarMenuItem>
+        </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
