@@ -253,20 +253,20 @@ const Quixote = () => (
         </View>
 
         <View style={{ flexDirection: 'row' }}>
-          <View style={{ ...styles.tableCell, ...{ width: '18%' } }}>
+          <View style={{ ...styles.tableCell, ...{ width: '16%' } }}>
             <Text style={{ fontFamily: 'OpenSans-SemiBold', textAlign: 'left' }} hyphenationCallback={(word) => [word]}>
               Diseño
             </Text>
           </View>
           <View style={{ ...styles.tableCell, ...{ flex: 1 } }}>
-            <Text style={{ fontFamily: 'OpenSans-Regular' }}>
+            <Text style={{ fontFamily: 'OpenSans-Regular', fontSize: 11 }}>
               {\`Año de fabricación: 2004\`}
             </Text>
           </View>
         </View>
 
         <View style={{ flexDirection: 'row' }}>
-          <View style={{ ...styles.tableCell, ...{ width: '18%' } }}>
+          <View style={{ ...styles.tableCell, ...{ width: '16%' } }}>
             <Text style={{ fontFamily: 'OpenSans-SemiBold', textAlign: 'left' }} hyphenationCallback={(word) => [word]}>
               Antecedentes
             </Text>
@@ -288,9 +288,13 @@ Se reentubó haz.\`}
         </View>
 
         <View style={{ flexDirection: 'row' }}>
-          <View style={{ ...styles.tableCell, ...{ width: '18%' } }}>
-            <Text style={{ fontFamily: 'OpenSans-SemiBold', textAlign: 'left' }} hyphenationCallback={(word) => [word]}>
-              Origen, valoración y priorización de la tarea de mantenimiento
+          <View style={{ ...styles.tableCell, ...{ width: '16%' } }}>
+            <Text style={{ fontFamily: 'OpenSans-SemiBold', textAlign: 'left' }}>
+              {\`Origen, 
+valoración 
+y priorización 
+de la tarea de
+mantenimiento\`}
             </Text>
           </View>
           <View style={{ ...styles.tableCell, ...{ flex: 1 } }}>
@@ -368,7 +372,7 @@ rotativo, por lo cual debe normalizarse el hallazgo con el cambio de empaque y a
           </View>
 
           <View style={{ flexDirection: 'row' }}>
-            <View style={{ ...styles.tableCell, ...{ width: '14.5%' } }}>
+            <View style={{ ...styles.tableCell, ...{ width: '12.5%' } }}>
               <Text style={{ fontFamily: 'OpenSans-SemiBold', textAlign: 'left' }} hyphenationCallback={(word) => [word]}>
                 Detalle de la acción
               </Text>
@@ -390,7 +394,7 @@ Se reentubó haz.\`}
           </View>
 
           <View style={{ flexDirection: 'row' }}>
-            <View style={{ ...styles.tableCell, ...{ width: '14.5%' } }}>
+            <View style={{ ...styles.tableCell, ...{ width: '12.5%' } }}>
               <Text style={{ fontFamily: 'OpenSans-SemiBold', textAlign: 'left' }} hyphenationCallback={(word) => [word]}>
                 Listado de materiales y/o repuestos
               </Text>
@@ -403,7 +407,7 @@ Se reentubó haz.\`}
           </View>
 
           <View style={{ flexDirection: 'row' }}>
-            <View style={{ ...styles.tableCell, ...{ width: '14.5%' } }}>
+            <View style={{ ...styles.tableCell, ...{ width: '12.5%' } }}>
               <Text style={{ fontFamily: 'OpenSans-SemiBold', textAlign: 'left' }} hyphenationCallback={(word) => [word]}>
                 Controles de calidad / Estándar de evaluación
               </Text>
@@ -825,7 +829,7 @@ const Quixote = () => (
         </View>
 
         <View style={{ flexDirection: 'row' }}>
-          <View style={{ ...styles.tableCell, ...{ width: '18%' } }}>
+          <View style={{ ...styles.tableCell, ...{ width: '16%' } }}>
             <Text style={{ fontFamily: 'OpenSans-SemiBold', textAlign: 'left' }} hyphenationCallback={(word) => [word]}>
               Diseño
             </Text>
@@ -838,7 +842,7 @@ const Quixote = () => (
         </View>
 
         <View style={{ flexDirection: 'row' }}>
-          <View style={{ ...styles.tableCell, ...{ width: '18%' } }}>
+          <View style={{ ...styles.tableCell, ...{ width: '16%' } }}>
             <Text style={{ fontFamily: 'OpenSans-SemiBold', textAlign: 'left' }} hyphenationCallback={(word) => [word]}>
               Antecedentes
             </Text>
@@ -860,9 +864,13 @@ Se reentubó haz.\`}
         </View>
 
         <View style={{ flexDirection: 'row' }}>
-          <View style={{ ...styles.tableCell, ...{ width: '18%' } }}>
-            <Text style={{ fontFamily: 'OpenSans-SemiBold', textAlign: 'left' }} hyphenationCallback={(word) => [word]}>
-              Origen, valoración y priorización de la tarea de mantenimiento
+          <View style={{ ...styles.tableCell, ...{ width: '16%' } }}>
+            <Text style={{ fontFamily: 'OpenSans-SemiBold', textAlign: 'left' }} >
+              {\`Origen, 
+valoración y 
+priorización 
+de la tarea de
+mantenimiento\`}
             </Text>
           </View>
           <View style={{ ...styles.tableCell, ...{ flex: 1 } }}>
@@ -940,7 +948,7 @@ rotativo, por lo cual debe normalizarse el hallazgo con el cambio de empaque y a
           </View>
 
           <View style={{ flexDirection: 'row' }}>
-            <View style={{ ...styles.tableCell, ...{ width: '14.5%' } }}>
+            <View style={{ ...styles.tableCell, ...{ width: '12.5%' } }}>
               <Text style={{ fontFamily: 'OpenSans-SemiBold', textAlign: 'left' }} hyphenationCallback={(word) => [word]}>
                 Detalle de la acción
               </Text>
@@ -962,7 +970,7 @@ Se reentubó haz.\`}
           </View>
 
           <View style={{ flexDirection: 'row' }}>
-            <View style={{ ...styles.tableCell, ...{ width: '14.5%' } }}>
+            <View style={{ ...styles.tableCell, ...{ width: '12.5%' } }}>
               <Text style={{ fontFamily: 'OpenSans-SemiBold', textAlign: 'left' }} hyphenationCallback={(word) => [word]}>
                 Listado de materiales y/o repuestos
               </Text>
@@ -975,7 +983,7 @@ Se reentubó haz.\`}
           </View>
 
           <View style={{ flexDirection: 'row' }}>
-            <View style={{ ...styles.tableCell, ...{ width: '14.5%' } }}>
+            <View style={{ ...styles.tableCell, ...{ width: '12.5%' } }}>
               <Text style={{ fontFamily: 'OpenSans-SemiBold', textAlign: 'left' }} hyphenationCallback={(word) => [word]}>
                 Controles de calidad / Estándar de evaluación
               </Text>

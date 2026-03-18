@@ -16,6 +16,21 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { AppSidebar } from "@/components/app-sidebar"
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb"
+import { Separator } from "@/components/ui/separator"
+import {
+  SidebarInset,
+  SidebarProvider,
+  SidebarTrigger,
+} from "@/components/ui/sidebar"
 import openSansLight from './fonts/OpenSans/OpenSans-Light.ttf';
 import openSansRegular from './fonts/OpenSans/OpenSans-Regular.ttf';
 import openSansMedium from './fonts/OpenSans/OpenSans-Medium.ttf';
@@ -51,6 +66,9 @@ const GUI_IMAGE_ENABLED_LABEL_PATTERNS = [
 ];
 
 const RICH_PDF_CONTENT_HELPERS = String.raw`const IMAGE_MARKER_PATTERN = /\[\[IMG:([\s\S]*?)\]\]/g;
+const PDF_IMAGE_DPI = 300;
+const PDF_MAX_IMAGE_WIDTH_IN = 7.5;
+const POINTS_PER_INCH = 72;
 
 const richContentStyles = StyleSheet.create({
   block: {
@@ -60,12 +78,52 @@ const richContentStyles = StyleSheet.create({
     fontFamily: 'OpenSans-Regular',
   },
   image: {
-    width: '100%',
     objectFit: 'contain',
     marginTop: 2,
     marginBottom: 2,
+    alignSelf: 'center',
   },
 });
+
+const parseImageMarkerPayload = (payload) => {
+  const trimmedPayload = typeof payload === 'string' ? payload.trim() : '';
+  if (!trimmedPayload) {
+    return { source: '', widthPx: null, heightPx: null };
+  }
+
+  if (trimmedPayload.startsWith('{')) {
+    try {
+      const parsedPayload = JSON.parse(trimmedPayload);
+      const source = typeof parsedPayload.src === 'string' ? parsedPayload.src : '';
+      const widthValue = Number(parsedPayload.widthPx);
+      const heightValue = Number(parsedPayload.heightPx);
+
+      return {
+        source,
+        widthPx: Number.isFinite(widthValue) && widthValue > 0 ? widthValue : null,
+        heightPx: Number.isFinite(heightValue) && heightValue > 0 ? heightValue : null,
+      };
+    } catch {
+      return { source: trimmedPayload, widthPx: null, heightPx: null };
+    }
+  }
+
+  return { source: trimmedPayload, widthPx: null, heightPx: null };
+};
+
+const calculatePdfImageDimensions = (widthPx, heightPx) => {
+  const hasWidth = Number.isFinite(widthPx) && widthPx > 0;
+  if (!hasWidth) {
+    return { widthPoints: null, heightPoints: null };
+  }
+
+  const maxWidthPoints = PDF_MAX_IMAGE_WIDTH_IN * POINTS_PER_INCH;
+  const widthPoints = Math.min((widthPx / PDF_IMAGE_DPI) * POINTS_PER_INCH, maxWidthPoints);
+  const hasHeight = Number.isFinite(heightPx) && heightPx > 0;
+  const heightPoints = hasHeight ? (heightPx / widthPx) * widthPoints : null;
+
+  return { widthPoints, heightPoints };
+};
 
 const renderRichPdfContent = (content) => {
   const value = typeof content === 'string' ? content : '';
@@ -96,12 +154,18 @@ const renderRichPdfContent = (content) => {
     const textBeforeImage = value.slice(lastIndex, match.index);
     pushTextSegment(textBeforeImage);
 
-    const imageSource = match[1];
+    const imageData = parseImageMarkerPayload(match[1]);
+    const imageSource = imageData.source;
     if (imageSource) {
+      const imageDimensions = calculatePdfImageDimensions(imageData.widthPx, imageData.heightPx);
       nodes.push(
         <Image
           key={'rich-image-' + keyIndex++}
-          style={richContentStyles.image}
+          style={[
+            richContentStyles.image,
+            imageDimensions.widthPoints ? { width: imageDimensions.widthPoints } : {},
+            imageDimensions.heightPoints ? { height: imageDimensions.heightPoints } : {},
+          ]}
           src={imageSource}
         />
       );
@@ -157,6 +221,61 @@ const fileToDataUrl = (file) => new Promise((resolve, reject) => {
   reader.onerror = () => reject(reader.error || new Error('Failed to read pasted image.'));
   reader.readAsDataURL(file);
 });
+
+const readImageNaturalSize = (source) => new Promise((resolve, reject) => {
+  const image = new window.Image();
+  image.onload = () => {
+    const widthPx = Number(image.naturalWidth) || 0;
+    const heightPx = Number(image.naturalHeight) || 0;
+    resolve({ widthPx, heightPx });
+  };
+  image.onerror = () => reject(new Error('Failed to read image dimensions.'));
+  image.src = source;
+});
+
+const parseImageMarkerPayload = (payload) => {
+  const trimmedPayload = typeof payload === 'string' ? payload.trim() : '';
+  if (!trimmedPayload) {
+    return { source: '', widthPx: null, heightPx: null };
+  }
+
+  if (trimmedPayload.startsWith('{')) {
+    try {
+      const parsedPayload = JSON.parse(trimmedPayload);
+      const source = typeof parsedPayload.src === 'string' ? parsedPayload.src : '';
+      const widthValue = Number(parsedPayload.widthPx);
+      const heightValue = Number(parsedPayload.heightPx);
+
+      return {
+        source,
+        widthPx: Number.isFinite(widthValue) && widthValue > 0 ? widthValue : null,
+        heightPx: Number.isFinite(heightValue) && heightValue > 0 ? heightValue : null,
+      };
+    } catch {
+      return { source: trimmedPayload, widthPx: null, heightPx: null };
+    }
+  }
+
+  return { source: trimmedPayload, widthPx: null, heightPx: null };
+};
+
+const buildImageMarkerPayload = (source, widthPx, heightPx) => {
+  const sourceValue = typeof source === 'string' ? source : '';
+  if (!sourceValue) return '';
+
+  const hasWidth = Number.isFinite(widthPx) && widthPx > 0;
+  const hasHeight = Number.isFinite(heightPx) && heightPx > 0;
+
+  if (!hasWidth && !hasHeight) {
+    return sourceValue;
+  }
+
+  return JSON.stringify({
+    src: sourceValue,
+    ...(hasWidth ? { widthPx: Math.round(widthPx) } : {}),
+    ...(hasHeight ? { heightPx: Math.round(heightPx) } : {}),
+  });
+};
 
 const normalizeImageMarkerLineBreaks = (rawValue) => {
   if (!rawValue.includes(IMAGE_MARKER_PREFIX)) {
@@ -216,11 +335,25 @@ const populateRichEditorFromRaw = (editorElement, rawValue) => {
     const textBeforeImage = normalizedRawValue.slice(lastIndex, match.index);
     appendTextWithLineBreaks(fragment, textBeforeImage);
 
+    const imageData = parseImageMarkerPayload(match[1]);
+    const imageSource = imageData.source;
+    if (!imageSource) {
+      lastIndex = match.index + match[0].length;
+      match = IMAGE_MARKER_REGEX.exec(normalizedRawValue);
+      continue;
+    }
+
     const imageElement = document.createElement('img');
-    imageElement.src = match[1];
+    imageElement.src = imageSource;
     imageElement.alt = 'Pasted image';
-    imageElement.className = 'my-1 block max-h-52 w-auto max-w-full rounded border border-slate-300 bg-white';
+    imageElement.className = 'my-1 mx-auto block max-h-52 w-auto max-w-full rounded border border-slate-300 bg-white';
     imageElement.setAttribute('data-image-marker', 'true');
+    if (imageData.widthPx) {
+      imageElement.setAttribute('data-image-width-px', String(Math.round(imageData.widthPx)));
+    }
+    if (imageData.heightPx) {
+      imageElement.setAttribute('data-image-height-px', String(Math.round(imageData.heightPx)));
+    }
     fragment.appendChild(imageElement);
     fragment.appendChild(document.createElement('br'));
 
@@ -257,11 +390,16 @@ const extractRawFromRichEditor = (editorElement) => {
       const source = element.getAttribute('src') || '';
       if (!source) return;
 
+      const widthValue = Number(element.getAttribute('data-image-width-px'));
+      const heightValue = Number(element.getAttribute('data-image-height-px'));
+      const payload = buildImageMarkerPayload(source, widthValue, heightValue);
+      if (!payload) return;
+
       if (rawValue.length > 0 && !rawValue.endsWith('\n')) {
         rawValue += '\n';
       }
 
-      rawValue += `${IMAGE_MARKER_PREFIX}${source}${IMAGE_MARKER_SUFFIX}`;
+      rawValue += `${IMAGE_MARKER_PREFIX}${payload}${IMAGE_MARKER_SUFFIX}`;
 
       if (element.nextSibling && !rawValue.endsWith('\n')) {
         rawValue += '\n';
@@ -325,6 +463,17 @@ const RichImageTextarea = ({ value, onChange }) => {
         return;
       }
 
+      const imageMetadataList = await Promise.all(
+        validDataUrls.map(async (imageSource) => {
+          try {
+            const dimensions = await readImageNaturalSize(imageSource);
+            return { imageSource, ...dimensions };
+          } catch {
+            return { imageSource, widthPx: null, heightPx: null };
+          }
+        })
+      );
+
       const selection = window.getSelection();
       if (!selection || selection.rangeCount === 0) {
         return;
@@ -334,14 +483,20 @@ const RichImageTextarea = ({ value, onChange }) => {
       range.deleteContents();
 
       const fragment = document.createDocumentFragment();
-      validDataUrls.forEach((imageSource) => {
+      imageMetadataList.forEach(({ imageSource, widthPx, heightPx }) => {
         fragment.appendChild(document.createElement('br'));
 
         const imageElement = document.createElement('img');
         imageElement.src = imageSource;
         imageElement.alt = 'Pasted image';
-        imageElement.className = 'my-1 block max-h-52 w-auto max-w-full rounded border border-slate-300 bg-white';
+        imageElement.className = 'my-1 mx-auto block max-h-52 w-auto max-w-full rounded border border-slate-300 bg-white';
         imageElement.setAttribute('data-image-marker', 'true');
+        if (Number.isFinite(widthPx) && widthPx > 0) {
+          imageElement.setAttribute('data-image-width-px', String(Math.round(widthPx)));
+        }
+        if (Number.isFinite(heightPx) && heightPx > 0) {
+          imageElement.setAttribute('data-image-height-px', String(Math.round(heightPx)));
+        }
         fragment.appendChild(imageElement);
 
         fragment.appendChild(document.createElement('br'));
@@ -368,7 +523,7 @@ const RichImageTextarea = ({ value, onChange }) => {
       ref={editorRef}
       contentEditable
       suppressContentEditableWarning
-      className="gui-field-textarea min-h-[90px] w-full overflow-auto whitespace-pre-wrap break-words bg-white px-2 py-2 text-sm text-slate-900 outline-none ring-inset focus:ring-1 focus:ring-sky-500"
+      className="gui-field-textarea min-h-[90px] w-full overflow-auto whitespace-pre-wrap break-words bg-white px-2 py-2 text-sm text-slate-900 outline-hidden ring-inset focus:ring-1 focus:ring-sky-500"
       onInput={emitChange}
       onPaste={handlePaste}
     />
@@ -1056,7 +1211,7 @@ function App() {
             />
           ) : (
             <Textarea
-              className="gui-field-textarea min-h-[90px] w-full resize-none bg-white px-2 py-2 text-sm text-slate-900 outline-none ring-inset focus:ring-1 focus:ring-sky-500"
+              className="gui-field-textarea min-h-[90px] w-full resize-none bg-white px-2 py-2 text-sm text-slate-900 outline-hidden ring-inset focus:ring-1 focus:ring-sky-500"
               rows={1}
               value={field.value}
               onInput={(e) => resizeTextareaToContent(e.target)}
@@ -1065,7 +1220,7 @@ function App() {
           )
         ) : (
           <Input
-            className="w-full bg-white px-2 py-2 text-sm text-slate-900 outline-none ring-inset focus:ring-1 focus:ring-sky-500"
+            className="w-full bg-white px-2 py-2 text-sm text-slate-900 outline-hidden ring-inset focus:ring-1 focus:ring-sky-500"
             type="text"
             value={field.value}
             onChange={(e) => handleGuiFieldChange(field.id, e.target.value)}
@@ -1107,8 +1262,36 @@ function App() {
   };
 
   return (
-    <div className="flex h-dvh flex-col overflow-hidden bg-slate-950 text-slate-100">
-      <header className="flex items-center justify-between border-b border-slate-800 bg-slate-900 px-6 py-4 shadow-sm">
+
+    <SidebarProvider>
+      <AppSidebar />
+      <SidebarInset>
+        <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
+          <div className="flex items-center gap-2 px-4">
+            <SidebarTrigger className="-ml-1" />
+            <Separator
+              orientation="vertical"
+              className="mr-2 data-[orientation=vertical]:h-4"
+            />
+            <Breadcrumb>
+              <BreadcrumbList>
+                <BreadcrumbItem className="hidden md:block">
+                  <BreadcrumbLink href="#">
+                    Build Your Application
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator className="hidden md:block" />
+                <BreadcrumbItem>
+                  <BreadcrumbPage>Data Fetching</BreadcrumbPage>
+                </BreadcrumbItem>
+              </BreadcrumbList>
+            </Breadcrumb>
+          </div>
+        </header>
+        <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
+          <div className="min-h-[100vh] flex-1 rounded-xl bg-muted/50 md:min-h-min">
+            <div className="flex h-dvh flex-col overflow-hidden bg-slate-950 text-slate-100">
+      <header className="flex items-center justify-between border-b border-slate-800 bg-slate-900 px-6 py-4 shadow-xs">
         <h1 className="text-xl font-semibold">React-PDF Playground</h1>
         <div className="flex flex-wrap items-center justify-end gap-2">
           <Select value={selectedTemplate} onValueChange={handleTemplateChange}>
@@ -1281,6 +1464,7 @@ function App() {
                   {Array.from(new Array(numPages || 0), (_, index) => (
                     <Page
                       key={`page_${index + 1}`}
+                      className="pdf-preview-page"
                       pageNumber={index + 1}
                       inputRef={(node) => {
                         if (node) {
@@ -1294,7 +1478,6 @@ function App() {
                       renderTextLayer={false}
                       renderAnnotationLayer={false}
                       style={{
-                        marginBottom: '1rem',
                         boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
                         borderRadius: '4px',
                         backgroundColor: 'transparent',
@@ -1323,6 +1506,10 @@ function App() {
         </Card>
       </div>
     </div>
+          </div>
+        </div>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }
 
