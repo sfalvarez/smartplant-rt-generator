@@ -29,6 +29,7 @@ import {
   SidebarFooter,
   SidebarHeader,
   SidebarRail,
+  useSidebar,
 } from "@/components/ui/sidebar"
 
 const RTExpertLogo = ({ className }) => (
@@ -127,9 +128,11 @@ const data = {
 export function AppSidebar({
   ...props
 }) {
+  const { toggleSidebar } = useSidebar()
+
   return (
     <Sidebar collapsible="icon" {...props}>
-      <SidebarHeader>
+      <SidebarHeader onClick={toggleSidebar}>
         <SidebarMenu>
           <SidebarMenuItem>
             <div
