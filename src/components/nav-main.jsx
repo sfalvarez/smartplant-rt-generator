@@ -21,7 +21,7 @@ export function NavMain({
 }) {
   return (
     <SidebarGroup>
-      <SidebarGroupLabel>Módulos</SidebarGroupLabel>
+      <SidebarGroupLabel>Funciones</SidebarGroupLabel>
       <SidebarMenu>
         {items.map((item) => {
           const hasChildren = Array.isArray(item.items) && item.items.length > 0
@@ -31,7 +31,7 @@ export function NavMain({
               <SidebarMenuItem key={item.title}>
                 <SidebarMenuButton asChild tooltip={item.title}>
                   <a href={item.url}>
-                    {item.icon && <item.icon />}
+                    {item.icon && <item.icon className="size-8" />}
                     <span>{item.title}</span>
                   </a>
                 </SidebarMenuButton>
@@ -48,7 +48,7 @@ export function NavMain({
               <SidebarMenuItem>
                 <CollapsibleTrigger asChild>
                   <SidebarMenuButton tooltip={item.title}>
-                    {item.icon && <item.icon />}
+                    {item.icon && <item.icon className="size-8" />}
                     <span>{item.title}</span>
                     <ChevronRight
                       className="ms-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />

@@ -1360,9 +1360,6 @@ function App() {
 
               <div className="flex min-h-0 flex-1 flex-row md:flex-row">
                 <Card className="m-2 flex min-h-0 w-full flex-col overflow-hidden border-slate-800 md:w-1/2">
-                  <div className="flex min-h-[50px] items-center border-b border-slate-800 bg-slate-900 px-4 py-2">
-                    <h2 className="text-sm font-medium text-slate-300">Code Editor</h2>
-                  </div>
                   <div className="editor-container relative flex-1 overflow-auto bg-slate-950">
                     {isGuiMode && isGuiTemplate ? (
                       <div className="h-full overflow-y-auto bg-gradient-to-b from-slate-900 to-slate-950 p-4">

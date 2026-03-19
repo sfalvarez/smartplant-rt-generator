@@ -22,7 +22,7 @@ import {
   SidebarMenu,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import rtSmartLogo from "@/assets/logos/RTSmart-logo.svg"
+import rtExpertLogo from "@/assets/logos/RT-Expert-logo.svg"
 import {
   Sidebar,
   SidebarContent,
@@ -31,8 +31,8 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar"
 
-const RTSmartLogo = ({ className }) => (
-  <img src={rtSmartLogo} alt="RT Smart" className={className} />
+const RTExpertLogo = ({ className }) => (
+  <img src={rtExpertLogo} alt="RT Expert" className={className} />
 )
 
 // This is sample data.
@@ -44,8 +44,8 @@ const data = {
   },
   teams: [
     {
-      name: "RT Smart",
-      logo: RTSmartLogo,
+      name: "RT Expert",
+      logo: RTExpertLogo,
       plan: "Ecopetrol SA",
     },
   ],
@@ -121,24 +121,7 @@ const data = {
         }
       ],
     },
-  ],
-  projects: [
-    {
-      name: "Design Engineering",
-      url: "#",
-      icon: Frame,
-    },
-    {
-      name: "Sales & Marketing",
-      url: "#",
-      icon: PieChart,
-    },
-    {
-      name: "Travel",
-      url: "#",
-      icon: Map,
-    },
-  ],
+  ]
 }
 
 export function AppSidebar({
@@ -150,14 +133,14 @@ export function AppSidebar({
         <SidebarMenu>
           <SidebarMenuItem>
             <div
-              className="flex h-12 w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm transition-[width,height,padding,gap] duration-200 ease-linear group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:p-0!">
+              className="flex h-12 w-full items-center gap-2 overflow-hidden rounded-md p-1 text-left transition-[width,height,padding,gap] duration-200 ease-linear group-data-[collapsible=icon]:size-10! group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:p-0!">
               <div
-                className="flex aspect-square size-8 items-center justify-center rounded-lg bg-transparent text-sidebar-primary-foreground">
-                <RTSmartLogo className="size-8" />
+                className="flex aspect-square size-10 items-center justify-center rounded-lg bg-transparent text-sidebar-primary-foreground">
+                <RTExpertLogo className="size-10" />
               </div>
-              <div className="grid flex-1 text-left text-sm leading-tight overflow-hidden transition-[max-width,opacity] duration-200 ease-linear group-data-[collapsible=icon]:max-w-0 group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:[transition-delay:200ms] group-data-[state=expanded]:[transition-delay:0ms]">
-                <span className="truncate font-medium">{"RT Smart"}</span>
-                <span className="truncate text-xs">{"Ecopetrol SA"}</span>
+              <div className="grid flex-1 text-left leading-tight overflow-hidden transition-[max-width,opacity] duration-200 ease-linear group-data-[collapsible=icon]:max-w-0 group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:[transition-delay:200ms] group-data-[state=expanded]:[transition-delay:0ms]">
+                <span className="truncate font-medium text-xl">{"RT Expert"}</span>
+                <span className="truncate text-s">{"Ecopetrol SA"}</span>
               </div>
             </div>
           </SidebarMenuItem>
@@ -165,7 +148,6 @@ export function AppSidebar({
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
-        <NavProjects projects={data.projects} />
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={data.user} />
