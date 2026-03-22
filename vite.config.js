@@ -29,7 +29,7 @@ const replaceTemplateSource = (source, templateName, code) => {
     ))
   }
 
-  // Support aliases like: quixoteGui: quixoteTemplate
+  // Support aliases like: PlantillaRT: PlantillaRT
   const aliasEntryRegex = new RegExp(`${escapedTemplateName}\\s*:\\s*([A-Za-z_$][\\w$]*)\\s*(?=,|})`)
   const aliasMatch = source.match(aliasEntryRegex)
 

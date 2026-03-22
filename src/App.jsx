@@ -8,13 +8,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { AppSidebar } from "@/components/app-sidebar"
 import {
@@ -38,7 +31,7 @@ import openSansSemiBold from './fonts/OpenSans/OpenSans-SemiBold.ttf';
 import openSansBold from './fonts/OpenSans/OpenSans-Bold.ttf';
 import openSansExtraBold from './fonts/OpenSans/OpenSans-ExtraBold.ttf';
 
-const GUI_TEMPLATE_NAME = 'quixoteGui';
+const GUI_TEMPLATE_NAME = 'PlantillaRT';
 const REGULAR_TEXT_PATTERN = /<Text style=\{\{[^}]*fontFamily:\s*'OpenSans-Regular'[^}]*\}\}[^>]*>\s*\{`([\s\S]*?)`\}\s*<\/Text>/g;
 const SEMIBOLD_TEXT_PATTERN = /<Text style=\{\{[^}]*fontFamily:\s*'OpenSans-SemiBold'[^}]*\}\}[^>]*>\s*([\s\S]*?)\s*<\/Text>/g;
 const BOLD_TEXT_PATTERN = /<Text style=\{\{[^}]*fontFamily:\s*'OpenSans-Bold'[^}]*\}\}[^>]*>\s*([\s\S]*?)\s*<\/Text>/g;
@@ -64,6 +57,7 @@ const GUI_IMAGE_ENABLED_LABEL_PATTERNS = [
   /controles? de calidad.*estandar de evaluacion/,
   /control de calidad requerido/,
 ];
+const COMPONENT_DECLARATION_REGEX = /const\s+[A-Za-z_$][\w$]*\s*=\s*\(\)\s*=>\s*\(/;
 
 const RICH_PDF_CONTENT_HELPERS = String.raw`const IMAGE_MARKER_PATTERN = /\[\[IMG:([\s\S]*?)\]\]/g;
 const PDF_IMAGE_DPI = 300;
@@ -535,8 +529,10 @@ const injectRichContentHelpers = (codeString) => {
     return codeString;
   }
 
-  if (codeString.includes('const Quixote = () => (')) {
-    return codeString.replace('const Quixote = () => (', `${RICH_PDF_CONTENT_HELPERS}\n\nconst Quixote = () => (`);
+  const componentDeclarationMatch = codeString.match(COMPONENT_DECLARATION_REGEX);
+  if (componentDeclarationMatch) {
+    const [componentDeclaration] = componentDeclarationMatch;
+    return codeString.replace(componentDeclaration, `${RICH_PDF_CONTENT_HELPERS}\n\n${componentDeclaration}`);
   }
 
   return `${RICH_PDF_CONTENT_HELPERS}\n\n${codeString}`;
@@ -819,8 +815,7 @@ Font.register({
 });
 
 function App() {
-  const [selectedTemplate, setSelectedTemplate] = useState('quixote');
-  const [code, setCode] = useState(() => templates.quixote);
+  const [code, setCode] = useState(() => templates[GUI_TEMPLATE_NAME]);
   const [isGuiMode, setIsGuiMode] = useState(false);
   const [guiFields, setGuiFields] = useState([]);
   const [documentComponent, setDocumentComponent] = useState(null);
@@ -837,7 +832,7 @@ function App() {
   const expectedPageCountRef = useRef(0);
   const restoreAnimationFrameRef = useRef(null);
   const generationRef = useRef(0);
-  const isGuiTemplate = selectedTemplate === GUI_TEMPLATE_NAME;
+  const isGuiTemplate = true;
 
   const getScrollContainer = () => pdfViewerContainerRef.current || previewContainerRef.current;
 
@@ -1032,12 +1027,10 @@ function App() {
         `
         ${transformedCode}
         
-        // Try different component names
-        if (typeof MyDocument !== 'undefined') return MyDocument;
-        if (typeof Quixote !== 'undefined') return Quixote;
-        if (typeof Document !== 'undefined') return Document;
+        // Resolve the single supported template component name.
+        if (typeof PlantillaRT !== 'undefined') return PlantillaRT;
         
-        throw new Error('No valid component found. Please define MyDocument, Quixote, or use ReactPDF.render()');
+        throw new Error('No valid component found. Please define PlantillaRT or use ReactPDF.render().');
         `
       );
 
@@ -1124,7 +1117,7 @@ function App() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ code, templateName: selectedTemplate }),
+        body: JSON.stringify({ code, templateName: GUI_TEMPLATE_NAME }),
       });
 
       if (!response.ok) {
@@ -1138,7 +1131,7 @@ function App() {
         throw new Error(`Failed to write src/templates.js.${details}`.trim());
       }
 
-      setSaveMessage(`Saved "${selectedTemplate}" + src/templates.js`);
+      setSaveMessage(`Saved "${GUI_TEMPLATE_NAME}" + src/templates.js`);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to save code to src/templates.js.';
       setError(message);
@@ -1149,14 +1142,7 @@ function App() {
   };
 
   const handleClearCode = () => {
-    setCode(templates[selectedTemplate] || templates.quixote);
-    setIsGuiMode(false);
-    setSaveMessage('');
-  };
-
-  const handleTemplateChange = (templateName) => {
-    setCode(templates[templateName]);
-    setSelectedTemplate(templateName);
+    setCode(templates[GUI_TEMPLATE_NAME] || '');
     setIsGuiMode(false);
     setSaveMessage('');
   };
@@ -1323,19 +1309,6 @@ function App() {
               <header className="flex items-center justify-between border-b border-slate-800 bg-slate-900 px-6 py-1 shadow-xs">
                 <h1 className="text-l font-semibold">Smart RT</h1>
                 <div className="flex flex-wrap items-center justify-end gap-2">
-                  <Select value={selectedTemplate} onValueChange={handleTemplateChange}>
-                    <SelectTrigger className="w-[260px]">
-                      <SelectValue placeholder="Choose template" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="quixote">Don Quixote</SelectItem>
-                      <SelectItem value="quixoteGui">Plantilla RT</SelectItem>
-                      <SelectItem value="simple">Simple Document</SelectItem>
-                      <SelectItem value="resume">Resume</SelectItem>
-                      <SelectItem value="invoice">Invoice</SelectItem>
-                      <SelectItem value="multipage">Multi-page Example</SelectItem>
-                    </SelectContent>
-                  </Select>
                   <Button onClick={handleRunCode}>
                     Run Code
                   </Button>
