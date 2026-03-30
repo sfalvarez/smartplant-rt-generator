@@ -281,11 +281,11 @@ const PlantillaRT = () => (
         <View style={{ flexDirection: 'row' }}>
           <View style={{ ...styles.tableCell, ...{ width: '16%' } }}>
             <Text style={{ fontFamily: 'OpenSans-SemiBold', textAlign: 'left' }} >
-              {\`Origen, 
+              Origen, 
 valoración y 
 priorización 
 de la tarea de
-mantenimiento\`}
+mantenimiento
             </Text>
           </View>
           <View style={{ ...styles.tableCell, ...{ flex: 1 } }}>
